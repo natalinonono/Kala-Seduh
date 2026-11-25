@@ -66,16 +66,24 @@ $metodeSeduhId = (int) ($input['metode_seduh_id'] ?? 0);
 $tipeSajian = trim((string) ($input['tipe_sajian'] ?? 'Hot'));
 $catatan = trim((string) ($input['catatan'] ?? ''));
 
-if ($namaPelanggan === '' || mb_strlen($namaPelanggan) > 100) {
-    $respondError('Nama pelanggan wajib diisi (maksimal 100 karakter).');
+if ($namaPelanggan === '') {
+    $namaPelanggan = 'Tamu Slow Bar';
+} elseif (mb_strlen($namaPelanggan) > 100) {
+    $respondError('Nama pelanggan maksimal 100 karakter.');
 }
-if ($nomorMeja === '' || mb_strlen($nomorMeja) > 30) {
-    $respondError('Nomor meja atau kursi bar wajib diisi.');
+
+if ($nomorMeja === '') {
+    $nomorMeja = 'Slow Bar';
+} elseif (mb_strlen($nomorMeja) > 30) {
+    $respondError('Nomor meja maksimal 30 karakter.');
 }
+
 if ($bijiKopiId <= 0 || $metodeSeduhId <= 0) {
-    $respondError('Pilih biji kopi dan metode seduh yang valid.');
+    $respondError('Pilih beans dan teknik penyeduhan yang valid.');
 }
-if (!in_array($tipeSajian, ['Hot', 'Iced'], true)) {
+if ($tipeSajian === '') {
+    $tipeSajian = 'Hot';
+} elseif (!in_array($tipeSajian, ['Hot', 'Iced'], true)) {
     $respondError('Tipe sajian harus Hot atau Iced.');
 }
 if (mb_strlen($catatan) > 300) {
