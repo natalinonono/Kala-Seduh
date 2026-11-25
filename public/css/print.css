@@ -1,0 +1,76 @@
+/* Stylesheet cetak laporan transaksi Kala Seduh Slow Bar */
+@page {
+  size: A4 portrait;
+  margin: 14mm 12mm;
+}
+
+.print-only {
+  display: none;
+}
+
+@media print {
+  html,
+  body {
+    background: #ffffff !important;
+    color: #1d1c16 !important;
+    font-size: 11px !important;
+    line-height: 1.4 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .no-print,
+  aside,
+  header,
+  nav,
+  button,
+  form.filter-form,
+  .modal-backdrop,
+  #toast-container {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .main-shell {
+    padding-left: 0 !important;
+  }
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .print-section {
+    display: block !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: #ffffff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  th,
+  td {
+    border: 1px solid #d2c4bd !important;
+    padding: 6px 8px !important;
+    color: #1d1c16 !important;
+    background: #ffffff !important;
+  }
+
+  thead th {
+    background: #f2ede3 !important;
+    font-weight: 700 !important;
+  }
+
+  tr {
+    page-break-inside: avoid;
+  }
+}

@@ -1,0 +1,225 @@
+<?php
+/**
+ * Helper umum untuk aplikasi Kala Seduh Slow Bar.
+ */
+
+declare(strict_types=1);
+
+if (!date_default_timezone_set('Asia/Jakarta')) {
+    date_default_timezone_set('UTC');
+}
+
+/**
+ * Muat file .env lokal jika tersedia (berguna saat pengembangan lokal;
+ * di Vercel variabel diambil langsung dari Environment Variables).
+ */
+function loadLocalEnv(string $envPath): void
+{
+    static $loaded = false;
+    if ($loaded || !is_file($envPath) || !is_readable($envPath)) {
+        $loaded = true;
+        return;
+    }
+
+    $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    if ($lines === false) {
+        $loaded = true;
+        return;
+    }
+
+    foreach ($lines as $line) {
+        $trimmed = trim($line);
+        if ($trimmed === '' || str_starts_with($trimmed, '#')) {
+            continue;
+        }
+        $pos = strpos($trimmed, '=');
+        if ($pos === false) {
+            continue;
+        }
+        $key = trim(substr($trimmed, 0, $pos));
+        $val = trim(substr($trimmed, $pos + 1));
+
+        if (
+            (str_starts_with($val, '"') && str_ends_with($val, '"')) ||
+            (str_starts_with($val, "'") && str_ends_with($val, "'"))
+        ) {
+            $val = substr($val, 1, -1);
+        }
+
+        if ($key !== '' && getenv($key) === false) {
+            putenv($key . '=' . $val);
+            $_ENV[$key] = $val;
+            $_SERVER[$key] = $val;
+        }
+    }
+
+    $loaded = true;
+}
+
+loadLocalEnv(__DIR__ . '/../../.env');
+
+/**
+ * Ambil nilai environment variable dengan fallback berurutan.
+ */
+function envValue(string $key, ?string $default = null): ?string
+{
+    $val = getenv($key);
+    if ($val !== false && $val !== '') {
+        return (string) $val;
+    }
+    if (isset($_ENV[$key]) && $_ENV[$key] !== '') {
+        return (string) $_ENV[$key];
+    }
+    if (isset($_SERVER[$key]) && $_SERVER[$key] !== '') {
+        return (string) $_SERVER[$key];
+    }
+    return $default;
+}
+
+/**
+ * Escape HTML untuk mencegah XSS.
+ */
+function e(mixed $value): string
+{
+    return htmlspecialchars((string) ($value ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+/**
+ * Format angka menjadi Rupiah (contoh: Rp 45.000).
+ */
+function formatRupiah(int|float|string $amount): string
+{
+    $num = (int) round((float) $amount);
+    return 'Rp ' . number_format($num, 0, ',', '.');
+}
+
+/**
+ * Format timestamp menjadi tanggal & jam Indonesia (WIB).
+ */
+function formatWaktuIndo(?string $timestamp): string
+{
+    if (!$timestamp) {
+        return '-';
+    }
+    try {
+        $dt = new DateTimeImmutable($timestamp);
+        $dtWib = $dt->setTimezone(new DateTimeZone('Asia/Jakarta'));
+        $bulan = [
+            1 => 'Jan', 2 => 'Feb', 3 => 'Mar', 4 => 'Apr',
+            5 => 'Mei', 6 => 'Jun', 7 => 'Jul', 8 => 'Agu',
+            9 => 'Sep', 10 => 'Okt', 11 => 'Nov', 12 => 'Des',
+        ];
+        $m = (int) $dtWib->format('n');
+        return $dtWib->format('d') . ' ' . ($bulan[$m] ?? $dtWib->format('M')) . ' ' . $dtWib->format('Y • H:i') . ' WIB';
+    } catch (Throwable) {
+        return $timestamp;
+    }
+}
+
+/**
+ * Format jam singkat WIB (contoh: 14:25 WIB).
+ */
+function formatJamSingkat(?string $timestamp): string
+{
+    if (!$timestamp) {
+        return '-';
+    }
+    try {
+        $dt = new DateTimeImmutable($timestamp);
+        $dtWib = $dt->setTimezone(new DateTimeZone('Asia/Jakarta'));
+        return $dtWib->format('H:i') . ' WIB';
+    } catch (Throwable) {
+        return '-';
+    }
+}
+
+/**
+ * Kirim respons JSON dan hentikan eksekusi.
+ */
+function jsonResponse(array $payload, int $statusCode = 200): never
+{
+    http_response_code($statusCode);
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store, no-cache, must-revalidate');
+    echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    exit;
+}
+
+/**
+ * Redirect HTTP dan hentikan eksekusi.
+ */
+function redirectTo(string $location): never
+{
+    header('Location: ' . $location);
+    exit;
+}
+
+/**
+ * Deteksi apakah permintaan masuk melalui HTTPS (termasuk proxy Vercel).
+ */
+function isHttpsRequest(): bool
+{
+    if (!empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off') {
+        return true;
+    }
+    if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower((string) $_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https') {
+        return true;
+    }
+    if ((int) ($_SERVER['SERVER_PORT'] ?? 80) === 443) {
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Simpan flash message sementara via cookie singkat (stateless untuk Vercel).
+ */
+function setFlashMessage(string $type, string $message): void
+{
+    $payload = json_encode(['type' => $type, 'message' => $message], JSON_UNESCAPED_UNICODE);
+    if ($payload === false) {
+        return;
+    }
+    setcookie('kala_seduh_flash', base64_encode($payload), [
+        'expires' => time() + 60,
+        'path' => '/',
+        'secure' => isHttpsRequest(),
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+}
+
+/**
+ * Ambil dan hapus flash message sekali baca.
+ *
+ * @return array{type: string, message: string}|null
+ */
+function consumeFlashMessage(): ?array
+{
+    $raw = $_COOKIE['kala_seduh_flash'] ?? '';
+    if ($raw === '') {
+        return null;
+    }
+
+    setcookie('kala_seduh_flash', '', [
+        'expires' => time() - 3600,
+        'path' => '/',
+        'secure' => isHttpsRequest(),
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+    unset($_COOKIE['kala_seduh_flash']);
+
+    $decoded = base64_decode((string) $raw, true);
+    if ($decoded === false) {
+        return null;
+    }
+    $data = json_decode($decoded, true);
+    if (!is_array($data) || !isset($data['type'], $data['message'])) {
+        return null;
+    }
+    return [
+        'type' => (string) $data['type'],
+        'message' => (string) $data['message'],
+    ];
+}

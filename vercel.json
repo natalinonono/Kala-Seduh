@@ -1,0 +1,35 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "version": 2,
+  "functions": {
+    "api/*.php": {
+      "runtime": "vercel-php@0.7.3"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/api/index.php"
+    },
+    {
+      "source": "/login",
+      "destination": "/api/login.php"
+    },
+    {
+      "source": "/logout",
+      "destination": "/api/logout.php"
+    },
+    {
+      "source": "/admin",
+      "destination": "/api/admin.php"
+    },
+    {
+      "source": "/proses-order",
+      "destination": "/api/proses_order.php"
+    },
+    {
+      "source": "/antrean",
+      "destination": "/api/antrean.php"
+    }
+  ]
+}

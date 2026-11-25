@@ -1,0 +1,8 @@
+.env
+.env.local
+.git
+.gitignore
+stitch/
+database.sql
+README.md
+router.php
