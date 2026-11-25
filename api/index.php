@@ -117,7 +117,7 @@ $beansJson = json_encode(
         'tasting_notes' => (string) $b['tasting_notes'],
         'stok_gram'     => (int) $b['stok_gram'],
         'harga'         => (int) $b['harga'],
-        'gambar_url'    => (string) $b['gambar_url'],
+        'gambar_url'    => resolveBeanImageUrl((string) $b['gambar_url']),
     ], $beans),
     JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE
 );
@@ -290,18 +290,19 @@ require __DIR__ . '/partials/head.php';
 
         <!-- Hero Visual Spotlight Card -->
         <div class="lg:col-span-6">
+          <?php $heroImg = resolveBeanImageUrl($featuredBean['gambar_url'] ?? null); ?>
           <div class="relative rounded-xl overflow-hidden bg-[#231710] border border-sand shadow-ambient">
             <div class="relative h-[380px] sm:h-[460px] w-full bg-[#231710] overflow-hidden">
               <img
-                src="<?= e($featuredBean['gambar_url'] ?? 'https://images.unsplash.com/photo-1620051787220-50768889e32c?auto=format&fit=crop&w=1000&q=80') ?>"
+                src="<?= e($heroImg) ?>"
                 alt=""
                 aria-hidden="true"
                 class="absolute inset-0 w-full h-full object-cover blur-2xl scale-125 opacity-55 pointer-events-none"
                 onerror="this.style.display='none'"
               />
               <img
-                src="<?= e($featuredBean['gambar_url'] ?? 'https://images.unsplash.com/photo-1620051787220-50768889e32c?auto=format&fit=crop&w=1000&q=80') ?>"
-                alt="<?= e($featuredBean['nama_kopi'] ?? 'Manual Brew Kala Seduh') ?>"
+                src="<?= e($heroImg) ?>"
+                alt="<?= e($featuredBean['nama_kopi'] ?? 'Beans Kala Seduh') ?>"
                 class="relative z-10 w-full h-full object-contain"
                 onerror="this.style.display='none'"
               />
@@ -310,7 +311,7 @@ require __DIR__ . '/partials/head.php';
               <div class="absolute top-4 left-4 right-4 z-30 flex items-center justify-between gap-2 flex-wrap">
                 <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/90 backdrop-blur-md text-espresso text-[11px] font-semibold uppercase tracking-wider">
                   <span class="w-2 h-2 rounded-full bg-terracotta animate-pulse"></span>
-                  Kurasi Pilihan Hari Ini
+                  Kurasi Beans Hari Ini
                 </span>
                 <?php if ($featuredBean !== null): ?>
                   <span class="px-3 py-1 rounded-full bg-espresso/80 backdrop-blur-md text-cream font-editorial italic text-sm">
@@ -522,10 +523,11 @@ require __DIR__ . '/partials/head.php';
                 data-search="<?= e(strtolower($bean['nama_kopi'] . ' ' . $bean['origin'] . ' ' . $bean['tasting_notes'] . ' ' . $bean['proses'])) ?>"
               >
                 <div class="flex-1 flex flex-col">
-                  <!-- Gambar Kopi (Utuh tanpa terpotong) -->
+                  <!-- Gambar Beans (Utuh tanpa terpotong) -->
+                  <?php $beanImgUrl = resolveBeanImageUrl((string) $bean['gambar_url']); ?>
                   <div class="relative aspect-[4/3] w-full bg-[#231710] overflow-hidden">
                     <img
-                      src="<?= e($bean['gambar_url']) ?>"
+                      src="<?= e($beanImgUrl) ?>"
                       alt=""
                       aria-hidden="true"
                       class="absolute inset-0 w-full h-full object-cover blur-xl scale-125 opacity-55 pointer-events-none"
@@ -533,7 +535,7 @@ require __DIR__ . '/partials/head.php';
                       onerror="this.style.display='none'"
                     />
                     <img
-                      src="<?= e($bean['gambar_url']) ?>"
+                      src="<?= e($beanImgUrl) ?>"
                       alt="<?= e($bean['nama_kopi']) ?>"
                       class="relative z-10 w-full h-full object-contain group-hover:scale-[1.03] transition-transform duration-500"
                       loading="lazy"
@@ -621,40 +623,66 @@ require __DIR__ . '/partials/head.php';
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           <?php foreach ($methods as $m): ?>
-            <div class="bg-paper border border-sand rounded-xl p-5 flex flex-col justify-between space-y-4 hover:border-[#C9BFB0] hover:shadow-ambient transition-all">
-              <div class="space-y-3">
-                <div class="flex items-start justify-between">
-                  <div>
-                    <span class="text-[10px] font-bold uppercase tracking-widest text-terracotta">Manual Brew</span>
-                    <h3 class="font-editorial text-2xl font-medium text-espresso"><?= e($m['nama_metode']) ?></h3>
+            <?php $methodImgUrl = resolveMethodImageUrl((string) $m['nama_metode']); ?>
+            <div class="group bg-paper border border-sand rounded-xl overflow-hidden flex flex-col justify-between hover:border-[#C9BFB0] hover:shadow-ambient hover:-translate-y-0.5 transition-all duration-300">
+              <div>
+                <!-- Foto Teknik Penyeduhan (Utuh tanpa terpotong) -->
+                <div class="relative aspect-[4/3] w-full bg-[#231710] overflow-hidden">
+                  <img
+                    src="<?= e($methodImgUrl) ?>"
+                    alt=""
+                    aria-hidden="true"
+                    class="absolute inset-0 w-full h-full object-cover blur-xl scale-125 opacity-55 pointer-events-none"
+                    loading="lazy"
+                    onerror="this.style.display='none'"
+                  />
+                  <img
+                    src="<?= e($methodImgUrl) ?>"
+                    alt="Teknik seduh <?= e($m['nama_metode']) ?>"
+                    class="relative z-10 w-full h-full object-contain group-hover:scale-[1.03] transition-transform duration-500"
+                    loading="lazy"
+                    onerror="this.style.display='none'"
+                  />
+                  <div class="absolute inset-x-0 top-0 z-20 h-14 bg-gradient-to-b from-espresso-dark/35 to-transparent pointer-events-none"></div>
+                  <div class="absolute top-3 left-3 z-30">
+                    <span class="px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-sm text-espresso text-[10px] font-bold uppercase tracking-wider border border-sand shadow-sm">
+                      Manual Brew
+                    </span>
                   </div>
-                  <div class="w-9 h-9 rounded-full bg-surface-high flex items-center justify-center text-espresso">
-                    <span class="material-symbols-outlined text-[18px]">local_cafe</span>
+                  <div class="absolute top-3 right-3 z-30">
+                    <span class="px-2.5 py-1 rounded-full bg-espresso/90 backdrop-blur-sm text-cream text-[11px] font-semibold tabular-nums shadow-sm">
+                      ~<?= (int) $m['estimasi_menit'] ?> menit
+                    </span>
                   </div>
                 </div>
-                <div class="bg-surface-low border border-sand/80 rounded-lg p-3 space-y-1.5 text-xs text-muted">
-                  <div class="flex justify-between">
-                    <span>Takaran Beans:</span>
-                    <strong class="text-espresso tabular-nums"><?= (int) $m['rasio_kopi_gram'] ?>g</strong>
-                  </div>
-                  <div class="flex justify-between">
-                    <span>Estimasi Waktu:</span>
-                    <strong class="text-espresso tabular-nums">~<?= (int) $m['estimasi_menit'] ?> menit</strong>
-                  </div>
-                  <div class="flex justify-between">
-                    <span>Biaya Tambahan:</span>
-                    <strong class="text-espresso tabular-nums"><?= (int) $m['biaya_tambahan'] > 0 ? '+' . e(formatRupiah((int) $m['biaya_tambahan'])) : 'Termasuk' ?></strong>
+
+                <div class="p-5 space-y-3">
+                  <h3 class="font-editorial text-2xl font-medium text-espresso group-hover:text-terracotta transition-colors">
+                    <?= e($m['nama_metode']) ?>
+                  </h3>
+                  <div class="bg-surface-low border border-sand/80 rounded-lg p-3 space-y-1.5 text-xs text-muted">
+                    <div class="flex justify-between">
+                      <span>Takaran Beans:</span>
+                      <strong class="text-espresso tabular-nums"><?= (int) $m['rasio_kopi_gram'] ?>g</strong>
+                    </div>
+                    <div class="flex justify-between">
+                      <span>Biaya Teknik:</span>
+                      <strong class="text-espresso tabular-nums"><?= (int) $m['biaya_tambahan'] > 0 ? '+' . e(formatRupiah((int) $m['biaya_tambahan'])) : 'Termasuk' ?></strong>
+                    </div>
                   </div>
                 </div>
               </div>
-              <button
-                type="button"
-                onclick="openOrderDrawer(null, <?= (int) $m['id'] ?>)"
-                class="w-full py-2.5 rounded-lg bg-surface-high hover:bg-espresso text-espresso hover:text-cream text-xs font-semibold transition-colors flex items-center justify-center gap-1.5"
-              >
-                <span>Gunakan <?= e($m['nama_metode']) ?></span>
-                <span class="material-symbols-outlined text-[15px]">arrow_forward</span>
-              </button>
+
+              <div class="px-5 pb-5">
+                <button
+                  type="button"
+                  onclick="openOrderDrawer(null, <?= (int) $m['id'] ?>)"
+                  class="w-full py-2.5 rounded-lg bg-surface-high hover:bg-espresso text-espresso hover:text-cream text-xs font-semibold transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <span>Gunakan <?= e($m['nama_metode']) ?></span>
+                  <span class="material-symbols-outlined text-[15px]">arrow_forward</span>
+                </button>
+              </div>
             </div>
           <?php endforeach; ?>
         </div>
@@ -729,7 +757,10 @@ require __DIR__ . '/partials/head.php';
                 </option>
               <?php endforeach; ?>
             </select>
-            <p class="text-xs text-muted" id="drawer-bean-meta"></p>
+            <div class="flex items-center gap-3 bg-surface-low border border-sand rounded-lg p-2.5">
+              <img id="drawer-bean-thumb" src="" alt="" class="w-12 h-12 rounded object-cover bg-surface-mid shrink-0" />
+              <p class="text-xs text-muted" id="drawer-bean-meta"></p>
+            </div>
           </div>
 
           <!-- 2. Pilih Teknik Penyeduhan -->
@@ -739,7 +770,8 @@ require __DIR__ . '/partials/head.php';
             </span>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="drawer-methods-grid">
               <?php foreach ($methods as $idx => $m): ?>
-                <label class="cursor-pointer rounded-xl border border-sand bg-paper p-3.5 transition-all hover:border-espresso has-[:checked]:bg-espresso has-[:checked]:text-cream has-[:checked]:border-espresso">
+                <?php $drawerMethodImg = resolveMethodImageUrl((string) $m['nama_metode']); ?>
+                <label class="cursor-pointer rounded-xl border border-sand bg-paper p-3 transition-all hover:border-espresso has-[:checked]:bg-espresso has-[:checked]:text-cream has-[:checked]:border-espresso flex items-center gap-3">
                   <input
                     type="radio"
                     name="metode_seduh_id"
@@ -748,13 +780,16 @@ require __DIR__ . '/partials/head.php';
                     <?= $idx === 0 ? 'checked' : '' ?>
                     onchange="updateOrderCalculator()"
                   />
-                  <div class="flex items-center justify-between gap-1">
-                    <span class="font-semibold text-sm"><?= e($m['nama_metode']) ?></span>
-                    <span class="text-[11px] opacity-80 tabular-nums"><?= (int) $m['rasio_kopi_gram'] ?>g</span>
-                  </div>
-                  <div class="text-[11px] opacity-80 mt-1.5 flex items-center justify-between">
-                    <span>~<?= (int) $m['estimasi_menit'] ?> menit</span>
-                    <span><?= (int) $m['biaya_tambahan'] > 0 ? '+' . e(formatRupiah((int) $m['biaya_tambahan'])) : 'Termasuk' ?></span>
+                  <img src="<?= e($drawerMethodImg) ?>" alt="<?= e($m['nama_metode']) ?>" class="w-11 h-11 rounded-lg object-cover shrink-0 bg-surface-mid" />
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center justify-between gap-1">
+                      <span class="font-semibold text-sm truncate"><?= e($m['nama_metode']) ?></span>
+                      <span class="text-[11px] opacity-80 tabular-nums shrink-0"><?= (int) $m['rasio_kopi_gram'] ?>g</span>
+                    </div>
+                    <div class="text-[11px] opacity-80 mt-0.5 flex items-center justify-between">
+                      <span>~<?= (int) $m['estimasi_menit'] ?> mnt</span>
+                      <span><?= (int) $m['biaya_tambahan'] > 0 ? '+' . e(formatRupiah((int) $m['biaya_tambahan'])) : 'Termasuk' ?></span>
+                    </div>
                   </div>
                 </label>
               <?php endforeach; ?>
@@ -933,6 +968,7 @@ require __DIR__ . '/partials/head.php';
       const method = METHODS_DATA.find((m) => m.id === methodId);
 
       const beanMeta = document.getElementById('drawer-bean-meta');
+      const beanThumb = document.getElementById('drawer-bean-thumb');
       const sumBean = document.getElementById('summary-bean-price');
       const sumMethodName = document.getElementById('summary-method-name');
       const sumMethodFee = document.getElementById('summary-method-fee');
@@ -946,6 +982,10 @@ require __DIR__ . '/partials/head.php';
         return;
       }
 
+      if (beanThumb && bean.gambar_url) {
+        beanThumb.src = bean.gambar_url;
+        beanThumb.alt = bean.nama_kopi;
+      }
       if (beanMeta) {
         beanMeta.textContent = `${bean.origin} • ${bean.proses} • ${bean.tasting_notes}`;
       }

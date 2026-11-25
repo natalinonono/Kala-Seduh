@@ -80,7 +80,7 @@ INSERT INTO biji_kopi (nama_kopi, origin, proses, tasting_notes, stok_gram, harg
     'Blackcurrant, Peach Tea, Wild Honey',
     850,
     45000,
-    'https://images.unsplash.com/photo-1620051787220-50768889e32c?auto=format&fit=crop&w=900&q=80'
+    'https://images.unsplash.com/photo-1590093217544-da597729d81a?auto=format&fit=crop&w=900&q=80'
 ),
 (
     'Flores Bajawa Ngura',
@@ -98,7 +98,7 @@ INSERT INTO biji_kopi (nama_kopi, origin, proses, tasting_notes, stok_gram, harg
     'Jasmine Flower, Bergamot, Lemon Zest',
     420,
     55000,
-    'https://images.unsplash.com/photo-1622088891722-c6f91b80627f?auto=format&fit=crop&w=900&q=80'
+    'https://images.unsplash.com/photo-1703113391576-3beb676b7638?auto=format&fit=crop&w=900&q=80'
 ),
 (
     'Java Preanger Gunung Halu',
@@ -107,7 +107,7 @@ INSERT INTO biji_kopi (nama_kopi, origin, proses, tasting_notes, stok_gram, harg
     'Ripe Banana, Jackfruit, Brown Sugar',
     960,
     42000,
-    'https://images.unsplash.com/photo-1534778101976-62847782c213?auto=format&fit=crop&w=900&q=80'
+    'https://images.unsplash.com/photo-1692299108834-038511803008?auto=format&fit=crop&w=900&q=80'
 ),
 (
     'Toraja Sapan Minanga',
@@ -116,7 +116,7 @@ INSERT INTO biji_kopi (nama_kopi, origin, proses, tasting_notes, stok_gram, harg
     'Dark Cocoa, Nutmeg Spice, Cedar Wood',
     1500,
     40000,
-    'https://images.unsplash.com/photo-1732870695254-b2718d0796ff?auto=format&fit=crop&w=900&q=80'
+    'https://images.unsplash.com/photo-1567613747125-f7ac12360d77?auto=format&fit=crop&w=900&q=80'
 ),
 (
     'Kenya Nyeri Kiandu AA',
@@ -125,7 +125,7 @@ INSERT INTO biji_kopi (nama_kopi, origin, proses, tasting_notes, stok_gram, harg
     'Blackberry, Grapefruit, Cane Sugar',
     75,
     60000,
-    'https://images.unsplash.com/photo-1556742526-795a8eac090e?auto=format&fit=crop&w=900&q=80'
+    'https://images.unsplash.com/photo-1712251769294-16163363ebef?auto=format&fit=crop&w=900&q=80'
 );
 
 -- Master Metode Seduh

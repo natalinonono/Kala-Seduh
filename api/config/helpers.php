@@ -223,3 +223,59 @@ function consumeFlashMessage(): ?array
         'message' => (string) $data['message'],
     ];
 }
+
+/**
+ * Memastikan foto biji kopi selalu menampilkan foto biji kopi (beans).
+ * Memetakan URL seed lama yang bukan foto biji kopi ke foto biji kopi yang sesuai.
+ */
+function resolveBeanImageUrl(?string $url): string
+{
+    $defaultBeans = 'https://images.unsplash.com/photo-1590093217544-da597729d81a?auto=format&fit=crop&w=900&q=80';
+    $clean = trim((string) ($url ?? ''));
+    if ($clean === '') {
+        return $defaultBeans;
+    }
+
+    $legacyNonBeanMap = [
+        'photo-1620051787220-50768889e32c' => 'https://images.unsplash.com/photo-1590093217544-da597729d81a?auto=format&fit=crop&w=900&q=80',
+        'photo-1622088891722-c6f91b80627f' => 'https://images.unsplash.com/photo-1703113391576-3beb676b7638?auto=format&fit=crop&w=900&q=80',
+        'photo-1534778101976-62847782c213' => 'https://images.unsplash.com/photo-1692299108834-038511803008?auto=format&fit=crop&w=900&q=80',
+        'photo-1732870695254-b2718d0796ff' => 'https://images.unsplash.com/photo-1567613747125-f7ac12360d77?auto=format&fit=crop&w=900&q=80',
+        'photo-1556742526-795a8eac090e'     => 'https://images.unsplash.com/photo-1712251769294-16163363ebef?auto=format&fit=crop&w=900&q=80',
+    ];
+
+    foreach ($legacyNonBeanMap as $needle => $replacement) {
+        if (str_contains($clean, $needle)) {
+            return $replacement;
+        }
+    }
+
+    return $clean;
+}
+
+/**
+ * Mengembalikan URL foto teknik penyeduhan manual brew sesuai nama metode.
+ */
+function resolveMethodImageUrl(string $namaMetode, ?string $dbUrl = null): string
+{
+    $clean = trim((string) ($dbUrl ?? ''));
+    if ($clean !== '') {
+        return $clean;
+    }
+
+    $lower = strtolower($namaMetode);
+    if (str_contains($lower, 'v60')) {
+        return 'https://images.unsplash.com/photo-1622088891722-c6f91b80627f?auto=format&fit=crop&w=900&q=80';
+    }
+    if (str_contains($lower, 'kalita')) {
+        return 'https://images.unsplash.com/photo-1732870695254-b2718d0796ff?auto=format&fit=crop&w=900&q=80';
+    }
+    if (str_contains($lower, 'aeropress')) {
+        return 'https://images.unsplash.com/photo-1771518854988-319b8ccf71c5?auto=format&fit=crop&w=900&q=80';
+    }
+    if (str_contains($lower, 'syphon') || str_contains($lower, 'siphon')) {
+        return 'https://images.unsplash.com/photo-1774014045872-3cc2b5e7e816?auto=format&fit=crop&w=900&q=80';
+    }
+
+    return 'https://images.unsplash.com/photo-1620051787220-50768889e32c?auto=format&fit=crop&w=900&q=80';
+}

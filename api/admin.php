@@ -37,7 +37,7 @@ if ($dariTanggal > $sampaiTanggal) {
 
 $allowedProses = ['Natural', 'Washed', 'Honey', 'Anaerobic'];
 $allowedStatuses = ['Menunggu', 'Sedang Diseduh', 'Selesai'];
-$defaultCoffeeImg = 'https://images.unsplash.com/photo-1620051787220-50768889e32c?auto=format&fit=crop&w=900&q=80';
+$defaultCoffeeImg = 'https://images.unsplash.com/photo-1590093217544-da597729d81a?auto=format&fit=crop&w=900&q=80';
 
 $redirectAdmin = static function (string $tab, array $extraQuery = []): never {
     $params = array_merge(['tab' => $tab], $extraQuery);
@@ -878,7 +878,7 @@ require __DIR__ . '/partials/head.php';
                     <tr class="hover:bg-surface-low transition-colors">
                       <td class="py-3.5 px-4">
                         <div class="flex items-center gap-3">
-                          <img src="<?= e($bean['gambar_url']) ?>" alt="" class="w-11 h-11 rounded object-cover bg-surface-mid shrink-0" onerror="this.style.display='none'" />
+                          <img src="<?= e(resolveBeanImageUrl((string) $bean['gambar_url'])) ?>" alt="" class="w-11 h-11 rounded object-cover bg-surface-mid shrink-0" onerror="this.style.display='none'" />
                           <div>
                             <span class="font-semibold text-sm text-espresso block"><?= e($bean['nama_kopi']) ?></span>
                             <span class="text-xs text-muted"><?= e($bean['origin']) ?></span>
