@@ -288,17 +288,24 @@ require __DIR__ . '/partials/head.php';
 
         <!-- Hero Visual Spotlight Card -->
         <div class="lg:col-span-6">
-          <div class="relative rounded-xl overflow-hidden bg-surface-high border border-sand shadow-ambient">
-            <div class="relative h-[340px] sm:h-[420px] w-full bg-[#2C1E16]">
+          <div class="relative rounded-xl overflow-hidden bg-[#231710] border border-sand shadow-ambient">
+            <div class="relative h-[380px] sm:h-[460px] w-full bg-[#231710] overflow-hidden">
+              <img
+                src="<?= e($featuredBean['gambar_url'] ?? 'https://images.unsplash.com/photo-1620051787220-50768889e32c?auto=format&fit=crop&w=1000&q=80') ?>"
+                alt=""
+                aria-hidden="true"
+                class="absolute inset-0 w-full h-full object-cover blur-2xl scale-125 opacity-55 pointer-events-none"
+                onerror="this.style.display='none'"
+              />
               <img
                 src="<?= e($featuredBean['gambar_url'] ?? 'https://images.unsplash.com/photo-1620051787220-50768889e32c?auto=format&fit=crop&w=1000&q=80') ?>"
                 alt="<?= e($featuredBean['nama_kopi'] ?? 'Manual Brew Kala Seduh') ?>"
-                class="w-full h-full object-cover"
+                class="relative z-10 w-full h-full object-contain"
                 onerror="this.style.display='none'"
               />
-              <div class="absolute inset-0 bg-gradient-to-t from-espresso-dark/90 via-espresso-dark/30 to-transparent"></div>
+              <div class="absolute inset-0 z-20 bg-gradient-to-t from-espresso-dark/90 via-espresso-dark/25 to-transparent pointer-events-none"></div>
 
-              <div class="absolute top-4 left-4 right-4 flex items-center justify-between gap-2 flex-wrap">
+              <div class="absolute top-4 left-4 right-4 z-30 flex items-center justify-between gap-2 flex-wrap">
                 <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/90 backdrop-blur-md text-espresso text-[11px] font-semibold uppercase tracking-wider">
                   <span class="w-2 h-2 rounded-full bg-terracotta animate-pulse"></span>
                   Kurasi Pilihan Hari Ini
@@ -310,7 +317,7 @@ require __DIR__ . '/partials/head.php';
                 <?php endif; ?>
               </div>
 
-              <div class="absolute bottom-0 left-0 right-0 p-6 text-cream space-y-2">
+              <div class="absolute bottom-0 left-0 right-0 z-30 p-6 text-cream space-y-2">
                 <?php if ($featuredBean !== null): ?>
                   <span class="text-[11px] uppercase tracking-[0.16em] text-[#DAC2B5] block font-semibold">
                     <?= e($featuredBean['origin']) ?> • <?= e($featuredBean['proses']) ?>
@@ -508,22 +515,30 @@ require __DIR__ . '/partials/head.php';
                 data-search="<?= e(strtolower($bean['nama_kopi'] . ' ' . $bean['origin'] . ' ' . $bean['tasting_notes'] . ' ' . $bean['proses'])) ?>"
               >
                 <div class="flex-1 flex flex-col">
-                  <!-- Gambar Kopi -->
-                  <div class="relative h-48 w-full bg-surface-high overflow-hidden">
+                  <!-- Gambar Kopi (Utuh tanpa terpotong) -->
+                  <div class="relative aspect-[4/3] w-full bg-[#231710] overflow-hidden">
                     <img
                       src="<?= e($bean['gambar_url']) ?>"
-                      alt="<?= e($bean['nama_kopi']) ?>"
-                      class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      alt=""
+                      aria-hidden="true"
+                      class="absolute inset-0 w-full h-full object-cover blur-xl scale-125 opacity-55 pointer-events-none"
                       loading="lazy"
                       onerror="this.style.display='none'"
                     />
-                    <div class="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-espresso-dark/30 to-transparent pointer-events-none"></div>
-                    <div class="absolute top-3 left-3">
+                    <img
+                      src="<?= e($bean['gambar_url']) ?>"
+                      alt="<?= e($bean['nama_kopi']) ?>"
+                      class="relative z-10 w-full h-full object-contain group-hover:scale-[1.03] transition-transform duration-500"
+                      loading="lazy"
+                      onerror="this.style.display='none'"
+                    />
+                    <div class="absolute inset-x-0 top-0 z-20 h-16 bg-gradient-to-b from-espresso-dark/35 to-transparent pointer-events-none"></div>
+                    <div class="absolute top-3 left-3 z-30">
                       <span class="px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-sm text-espresso text-[11px] font-bold uppercase tracking-wider border border-sand shadow-sm">
                         <?= e($bean['proses']) ?>
                       </span>
                     </div>
-                    <div class="absolute top-3 right-3">
+                    <div class="absolute top-3 right-3 z-30">
                       <span
                         id="stock-badge-<?= $beanId ?>"
                         class="px-2.5 py-1 rounded-full text-[11px] font-semibold tabular-nums border shadow-sm <?= $isOut ? 'bg-[#FFEBEE] text-[#93000A] border-[#F5C6CB]' : ($isLow ? 'bg-terracotta-soft text-[#8F3F27] border-[#F3D1C4]' : 'bg-white/95 text-espresso border-sand') ?>"
