@@ -60,6 +60,7 @@ $isPrintPage = $isPrintPage ?? false;
     @layer base {
       html {
         scroll-behavior: smooth;
+        scroll-padding-top: 6rem;
       }
       body {
         background-color: #F5F0E6;

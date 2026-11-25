@@ -150,34 +150,46 @@ require __DIR__ . '/partials/head.php';
         </div>
       </a>
 
-      <nav class="hidden md:flex items-center gap-8 text-sm font-medium">
-        <a href="#katalog-biji" class="text-espresso font-semibold border-b-2 border-terracotta pb-1 transition-colors">Katalog Biji</a>
-        <a href="#antrean-section" class="text-muted hover:text-espresso transition-colors">Antrean Seduh Live</a>
-        <a href="#filosofi-section" class="text-muted hover:text-espresso transition-colors">Filosofi Rasa</a>
+      <nav class="hidden md:flex items-center gap-8 text-sm font-medium" id="main-nav">
+        <a href="#katalog-biji" class="nav-link text-espresso font-semibold border-b-2 border-terracotta pb-1 transition-colors whitespace-nowrap">Katalog Biji</a>
+        <a href="#antrean-section" class="nav-link text-muted hover:text-espresso border-b-2 border-transparent pb-1 transition-colors whitespace-nowrap">Antrean Seduh Live</a>
+        <a href="#filosofi-section" class="nav-link text-muted hover:text-espresso border-b-2 border-transparent pb-1 transition-colors whitespace-nowrap">Filosofi Rasa</a>
       </nav>
 
-      <div class="flex items-center gap-2.5">
+      <div class="flex items-center gap-2.5 shrink-0">
         <button
           type="button"
           onclick="openOrderDrawer()"
-          class="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded bg-terracotta hover:bg-terracotta-dark text-white text-xs font-semibold uppercase tracking-wider transition-colors shadow-sm"
+          class="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded bg-terracotta hover:bg-terracotta-dark text-white text-xs font-semibold uppercase tracking-wider transition-colors shadow-sm whitespace-nowrap"
         >
           <span class="material-symbols-outlined text-[16px]">local_cafe</span>
           <span>Pesan Seduh</span>
         </button>
 
         <?php if ($currentUser !== null): ?>
-          <a href="/admin" class="inline-flex items-center gap-1.5 px-4 py-2 rounded bg-espresso hover:bg-[#3D2C22] text-cream text-xs font-semibold transition-colors">
+          <a href="/admin" class="inline-flex items-center gap-1.5 px-4 py-2 rounded bg-espresso hover:bg-[#3D2C22] text-cream text-xs font-semibold transition-colors whitespace-nowrap">
             <span class="material-symbols-outlined text-[16px]">dashboard</span>
             <span>Dashboard (<?= e($currentUser['username']) ?>)</span>
           </a>
         <?php else: ?>
-          <a href="/login" class="inline-flex items-center gap-1.5 px-4 py-2 rounded bg-surface-high hover:bg-sand text-espresso border border-sand text-xs font-semibold transition-colors">
+          <a href="/login" class="inline-flex items-center gap-1.5 px-4 py-2 rounded bg-surface-high hover:bg-sand text-espresso border border-sand text-xs font-semibold transition-colors whitespace-nowrap">
             <span class="material-symbols-outlined text-[16px]">person</span>
             <span>Portal Barista</span>
           </a>
         <?php endif; ?>
       </div>
+    </div>
+
+    <!-- Navigasi Ringkas Mobile -->
+    <div class="md:hidden border-t border-sand/80 bg-surface-low/90 px-4 py-2 flex items-center justify-between gap-2 overflow-x-auto text-xs font-semibold">
+      <div class="flex items-center gap-4 whitespace-nowrap">
+        <a href="#katalog-biji" class="text-espresso">Katalog Biji</a>
+        <a href="#antrean-section" class="text-muted hover:text-espresso">Antrean Live</a>
+        <a href="#filosofi-section" class="text-muted hover:text-espresso">Filosofi Rasa</a>
+      </div>
+      <button type="button" onclick="openOrderDrawer()" class="sm:hidden shrink-0 px-3 py-1 rounded bg-terracotta text-white text-[11px] font-semibold">
+        Pesan Seduh
+      </button>
     </div>
   </header>
 
@@ -324,7 +336,7 @@ require __DIR__ . '/partials/head.php';
       </section>
 
       <!-- Section 2: Antrean Seduh Live -->
-      <section id="antrean-section" class="bg-paper border border-sand rounded-xl p-6 lg:p-8 shadow-sm space-y-6">
+      <section id="antrean-section" class="scroll-mt-28 bg-paper border border-sand rounded-xl p-6 lg:p-8 shadow-sm space-y-6">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-sand pb-4">
           <div class="flex items-start gap-3">
             <span class="w-3 h-3 rounded-full bg-terracotta animate-pulse mt-1.5 shrink-0"></span>
@@ -434,38 +446,44 @@ require __DIR__ . '/partials/head.php';
       </section>
 
       <!-- Section 3: Katalog Biji Kopi -->
-      <section id="katalog-biji" class="space-y-6">
-        <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-5">
-          <div class="space-y-1.5">
-            <span class="text-[11px] font-bold uppercase tracking-[0.18em] text-terracotta">Katalog Biji Terpilih</span>
-            <h2 class="font-editorial text-3xl sm:text-4xl text-espresso font-medium">Pilihan Kurasi Slow Bar</h2>
-            <p class="text-sm text-muted max-w-2xl">
-              Setiap pesanan memotong stok gramasi secara real-time sesuai rasio alat seduh yang Anda pilih.
-            </p>
-          </div>
+      <section id="katalog-biji" class="scroll-mt-28 space-y-6">
+        <div class="space-y-4">
+          <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div class="space-y-1.5">
+              <span class="text-[11px] font-bold uppercase tracking-[0.18em] text-terracotta block">Katalog Biji Terpilih</span>
+              <h2 class="font-editorial text-3xl sm:text-4xl text-espresso font-medium leading-tight">Pilihan Kurasi Slow Bar</h2>
+              <p class="text-sm text-muted max-w-2xl">
+                Setiap pesanan memotong stok gramasi secara real-time sesuai rasio alat seduh yang Anda pilih.
+              </p>
+            </div>
 
-          <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            <div class="relative">
-              <span class="material-symbols-outlined text-[18px] text-outline absolute left-3 top-1/2 -translate-y-1/2">search</span>
+            <div class="relative w-full md:w-72 shrink-0">
+              <span class="material-symbols-outlined text-[18px] text-outline absolute left-3.5 top-1/2 -translate-y-1/2">search</span>
               <input
                 type="text"
                 id="bean-search-input"
                 oninput="applyCatalogFilters()"
-                placeholder="Cari biji, origin, notes..."
-                class="w-full sm:w-56 h-10 pl-9 pr-3 rounded-lg bg-white border border-sand text-sm text-espresso focus:outline-none focus:border-espresso"
+                placeholder="Cari biji, origin, atau tasting notes..."
+                class="w-full h-11 pl-10 pr-4 rounded-lg bg-white border border-sand text-sm text-espresso placeholder:text-outline focus:outline-none focus:border-espresso focus:ring-1 focus:ring-espresso transition"
               />
             </div>
+          </div>
 
-            <div class="flex flex-wrap items-center gap-1.5" id="filter-container">
-              <button type="button" onclick="setProcessFilter('all')" data-proses="all" class="filter-tab px-3.5 py-1.5 rounded-full bg-espresso text-cream text-xs font-semibold transition-colors">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-paper border border-sand rounded-xl px-4 py-3">
+            <div class="flex flex-wrap items-center gap-2" id="filter-container">
+              <button type="button" onclick="setProcessFilter('all')" data-proses="all" class="filter-tab px-3.5 py-1.5 rounded-full bg-espresso text-cream text-xs font-semibold transition-colors whitespace-nowrap">
                 Semua (<?= count($beans) ?>)
               </button>
               <?php foreach ($prosesList as $prosesName): ?>
-                <button type="button" onclick="setProcessFilter('<?= e($prosesName) ?>')" data-proses="<?= e($prosesName) ?>" class="filter-tab px-3.5 py-1.5 rounded-full bg-paper border border-sand hover:bg-surface-high text-espresso text-xs font-semibold transition-colors">
+                <button type="button" onclick="setProcessFilter('<?= e($prosesName) ?>')" data-proses="<?= e($prosesName) ?>" class="filter-tab px-3.5 py-1.5 rounded-full bg-surface-low border border-sand hover:bg-surface-high text-espresso text-xs font-semibold transition-colors whitespace-nowrap">
                   <?= e($prosesName) ?> (<?= $prosesCounts[$prosesName] ?>)
                 </button>
               <?php endforeach; ?>
             </div>
+
+            <span id="catalog-count-label" class="text-xs text-muted font-medium whitespace-nowrap tabular-nums">
+              Menampilkan <?= count($beans) ?> dari <?= count($beans) ?> varian
+            </span>
           </div>
         </div>
 
@@ -474,7 +492,7 @@ require __DIR__ . '/partials/head.php';
             Belum ada data biji kopi di katalog. Silakan tambahkan melalui Dashboard Admin.
           </div>
         <?php else: ?>
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7" id="beans-grid">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-7" id="beans-grid">
             <?php foreach ($beans as $bean): ?>
               <?php
                 $beanId = (int) $bean['id'];
@@ -484,12 +502,12 @@ require __DIR__ . '/partials/head.php';
                 $notes = array_filter(array_map('trim', explode(',', (string) $bean['tasting_notes'])));
               ?>
               <article
-                class="bean-card group bg-paper border border-sand rounded-xl overflow-hidden shadow-sm hover:shadow-ambient transition-all duration-300 flex flex-col justify-between"
+                class="bean-card group bg-paper border border-sand rounded-xl overflow-hidden shadow-sm hover:shadow-ambient hover:-translate-y-0.5 hover:border-[#C9BFB0] transition-all duration-300 flex flex-col justify-between h-full"
                 data-bean-id="<?= $beanId ?>"
                 data-proses="<?= e($bean['proses']) ?>"
                 data-search="<?= e(strtolower($bean['nama_kopi'] . ' ' . $bean['origin'] . ' ' . $bean['tasting_notes'] . ' ' . $bean['proses'])) ?>"
               >
-                <div>
+                <div class="flex-1 flex flex-col">
                   <!-- Gambar Kopi -->
                   <div class="relative h-48 w-full bg-surface-high overflow-hidden">
                     <img
@@ -499,15 +517,16 @@ require __DIR__ . '/partials/head.php';
                       loading="lazy"
                       onerror="this.style.display='none'"
                     />
+                    <div class="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-espresso-dark/30 to-transparent pointer-events-none"></div>
                     <div class="absolute top-3 left-3">
-                      <span class="px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-sm text-espresso text-[11px] font-bold uppercase tracking-wider border border-sand">
+                      <span class="px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-sm text-espresso text-[11px] font-bold uppercase tracking-wider border border-sand shadow-sm">
                         <?= e($bean['proses']) ?>
                       </span>
                     </div>
                     <div class="absolute top-3 right-3">
                       <span
                         id="stock-badge-<?= $beanId ?>"
-                        class="px-2.5 py-1 rounded-full text-[11px] font-semibold tabular-nums border <?= $isOut ? 'bg-[#FFEBEE] text-[#93000A] border-[#F5C6CB]' : ($isLow ? 'bg-terracotta-soft text-[#8F3F27] border-[#F3D1C4]' : 'bg-white/95 text-espresso border-sand') ?>"
+                        class="px-2.5 py-1 rounded-full text-[11px] font-semibold tabular-nums border shadow-sm <?= $isOut ? 'bg-[#FFEBEE] text-[#93000A] border-[#F5C6CB]' : ($isLow ? 'bg-terracotta-soft text-[#8F3F27] border-[#F3D1C4]' : 'bg-white/95 text-espresso border-sand') ?>"
                       >
                         <?= $isOut ? 'Stok Habis (' . $stok . 'g)' : ($isLow ? 'Menipis • ' . $stok . 'g' : 'Stok ' . number_format($stok, 0, ',', '.') . 'g') ?>
                       </span>
@@ -515,24 +534,26 @@ require __DIR__ . '/partials/head.php';
                   </div>
 
                   <!-- Info Kopi -->
-                  <div class="p-5 space-y-3">
-                    <div>
-                      <span class="font-editorial italic text-sm text-muted block"><?= e($bean['origin']) ?></span>
-                      <h3 class="font-editorial text-2xl font-medium text-espresso group-hover:text-terracotta transition-colors">
-                        <?= e($bean['nama_kopi']) ?>
-                      </h3>
+                  <div class="p-5 flex-1 flex flex-col justify-between gap-4">
+                    <div class="space-y-3">
+                      <div>
+                        <span class="font-editorial italic text-sm text-muted block"><?= e($bean['origin']) ?></span>
+                        <h3 class="font-editorial text-2xl font-medium text-espresso group-hover:text-terracotta transition-colors leading-snug">
+                          <?= e($bean['nama_kopi']) ?>
+                        </h3>
+                      </div>
+
+                      <div class="flex flex-wrap gap-1.5">
+                        <?php foreach ($notes as $note): ?>
+                          <span class="px-2.5 py-0.5 rounded-full bg-white border border-sand text-xs text-espresso">
+                            <?= e($note) ?>
+                          </span>
+                        <?php endforeach; ?>
+                      </div>
                     </div>
 
-                    <div class="flex flex-wrap gap-1.5">
-                      <?php foreach ($notes as $note): ?>
-                        <span class="px-2.5 py-0.5 rounded-full bg-white border border-sand text-xs text-espresso">
-                          <?= e($note) ?>
-                        </span>
-                      <?php endforeach; ?>
-                    </div>
-
-                    <div class="bg-surface-low border border-sand/70 rounded-lg p-3 text-xs text-muted flex items-center justify-between">
-                      <span>Estimasi porsi tersisa (15g)</span>
+                    <div class="bg-surface-low border border-sand/80 rounded-lg px-3.5 py-2.5 text-xs text-muted flex items-center justify-between">
+                      <span>Estimasi porsi (<?= (int) $minRatio ?>g/cup)</span>
                       <strong class="text-espresso tabular-nums" id="cup-est-<?= $beanId ?>">
                         ≈ <?= intdiv($stok, max(1, $minRatio)) ?> cangkir
                       </strong>
@@ -541,7 +562,7 @@ require __DIR__ . '/partials/head.php';
                 </div>
 
                 <!-- Harga & Tombol Pilih -->
-                <div class="px-5 pb-5 pt-2 flex items-center justify-between border-t border-sand/60 mt-2">
+                <div class="px-5 py-4 flex items-center justify-between border-t border-sand/80 bg-surface/50">
                   <div>
                     <span class="text-[10px] uppercase tracking-wider text-muted font-semibold block">Harga Mulai</span>
                     <span class="text-lg font-bold text-espresso tabular-nums"><?= e(formatRupiah((int) $bean['harga'])) ?></span>
@@ -551,7 +572,7 @@ require __DIR__ . '/partials/head.php';
                     id="btn-order-bean-<?= $beanId ?>"
                     onclick="openOrderDrawer(<?= $beanId ?>)"
                     <?= $isOut ? 'disabled' : '' ?>
-                    class="px-4 py-2.5 rounded text-xs font-semibold tracking-wide transition-colors flex items-center gap-1.5 <?= $isOut ? 'bg-surface-mid text-outline cursor-not-allowed' : 'bg-espresso hover:bg-terracotta text-cream shadow-sm' ?>"
+                    class="px-4 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-colors flex items-center gap-1.5 whitespace-nowrap <?= $isOut ? 'bg-surface-mid text-outline cursor-not-allowed' : 'bg-espresso hover:bg-terracotta text-cream shadow-sm' ?>"
                   >
                     <span><?= $isOut ? 'Stok Habis' : 'Pilih & Seduh' ?></span>
                     <span class="material-symbols-outlined text-[16px]">coffee</span>
@@ -560,14 +581,14 @@ require __DIR__ . '/partials/head.php';
               </article>
             <?php endforeach; ?>
           </div>
-          <p id="empty-filter-msg" class="hidden text-center text-sm text-muted py-8 bg-paper border border-sand rounded-xl">
+          <p id="empty-filter-msg" class="hidden text-center text-sm text-muted py-10 bg-paper border border-sand rounded-xl">
             Tidak ada biji kopi yang sesuai dengan filter pencarian Anda.
           </p>
         <?php endif; ?>
       </section>
 
       <!-- Section 4: Filosofi Slow Bar -->
-      <section id="filosofi-section" class="bg-paper border border-sand rounded-xl p-6 lg:p-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+      <section id="filosofi-section" class="scroll-mt-28 bg-paper border border-sand rounded-xl p-6 lg:p-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
         <div class="lg:col-span-4 space-y-2">
           <span class="text-[11px] uppercase tracking-[0.18em] text-terracotta font-bold">Etiket Menikmati Seduhan</span>
           <h3 class="font-editorial text-3xl text-espresso font-medium">Meresapi Setiap Lapisan Suhu</h3>
@@ -816,9 +837,9 @@ require __DIR__ . '/partials/head.php';
       document.querySelectorAll('.filter-tab').forEach((btn) => {
         const isActive = btn.dataset.proses === proses;
         if (isActive) {
-          btn.className = 'filter-tab px-3.5 py-1.5 rounded-full bg-espresso text-cream text-xs font-semibold transition-colors';
+          btn.className = 'filter-tab px-3.5 py-1.5 rounded-full bg-espresso text-cream text-xs font-semibold transition-colors whitespace-nowrap';
         } else {
-          btn.className = 'filter-tab px-3.5 py-1.5 rounded-full bg-paper border border-sand hover:bg-surface-high text-espresso text-xs font-semibold transition-colors';
+          btn.className = 'filter-tab px-3.5 py-1.5 rounded-full bg-surface-low border border-sand hover:bg-surface-high text-espresso text-xs font-semibold transition-colors whitespace-nowrap';
         }
       });
       applyCatalogFilters();
@@ -839,6 +860,11 @@ require __DIR__ . '/partials/head.php';
           card.style.display = 'none';
         }
       });
+
+      const countLabel = document.getElementById('catalog-count-label');
+      if (countLabel) {
+        countLabel.textContent = `Menampilkan ${visibleCount} dari ${cards.length} varian`;
+      }
 
       const emptyMsg = document.getElementById('empty-filter-msg');
       if (emptyMsg) {
@@ -1151,9 +1177,23 @@ require __DIR__ . '/partials/head.php';
       }
     }
 
+    function setActiveNavLink(hash) {
+      document.querySelectorAll('#main-nav .nav-link').forEach((link) => {
+        const active = link.getAttribute('href') === hash;
+        link.classList.toggle('text-espresso', active);
+        link.classList.toggle('font-semibold', active);
+        link.classList.toggle('border-terracotta', active);
+        link.classList.toggle('text-muted', !active);
+        link.classList.toggle('border-transparent', !active);
+      });
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       updateOrderCalculator();
       setInterval(() => refreshLiveQueue(false), 5000);
+      document.querySelectorAll('#main-nav .nav-link').forEach((link) => {
+        link.addEventListener('click', () => setActiveNavLink(link.getAttribute('href')));
+      });
     });
   </script>
 </body>
