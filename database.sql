@@ -133,7 +133,11 @@ INSERT INTO metode_seduh (nama_metode, rasio_kopi_gram, estimasi_menit, biaya_ta
 ('V60', 15, 4, 0),
 ('Kalita Wave', 16, 5, 2000),
 ('AeroPress', 18, 3, 3000),
-('Syphon', 20, 7, 10000);
+('Syphon', 20, 7, 10000),
+('French Press', 18, 4, 2000),
+('Cold Brew', 20, 2, 5000),
+('Americano', 18, 3, 2000),
+('Latte', 18, 4, 8000);
 
 -- Data Awal Pesanan (Hari ini & Kemarin)
 INSERT INTO pesanan (kode_pesanan, nama_pelanggan, nomor_meja, biji_kopi_id, metode_seduh_id, tipe_sajian, catatan, total_harga, status, created_at) VALUES

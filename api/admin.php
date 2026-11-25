@@ -341,6 +341,7 @@ try {
          FROM metode_seduh
          ORDER BY id ASC'
     )->fetchAll();
+    $methods = syncExtraDefaultMethods($pdo, $methods);
 
     $queueOrders = $pdo->query(
         "SELECT

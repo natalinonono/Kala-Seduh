@@ -31,6 +31,7 @@ try {
          FROM metode_seduh
          ORDER BY id ASC'
     )->fetchAll();
+    $methods = syncExtraDefaultMethods($pdo, $methods);
 
     $queueOrders = $pdo->query(
         "SELECT
@@ -123,13 +124,20 @@ $beansJson = json_encode(
 );
 
 $methodsJson = json_encode(
-    array_map(static fn(array $m): array => [
-        'id'              => (int) $m['id'],
-        'nama_metode'     => (string) $m['nama_metode'],
-        'rasio_kopi_gram' => (int) $m['rasio_kopi_gram'],
-        'estimasi_menit'  => (int) $m['estimasi_menit'],
-        'biaya_tambahan'  => (int) $m['biaya_tambahan'],
-    ], $methods),
+    array_map(static function (array $m): array {
+        $profile = getMethodProfile((string) $m['nama_metode']);
+        return [
+            'id'              => (int) $m['id'],
+            'nama_metode'     => (string) $m['nama_metode'],
+            'rasio_kopi_gram' => (int) $m['rasio_kopi_gram'],
+            'estimasi_menit'  => (int) $m['estimasi_menit'],
+            'biaya_tambahan'  => (int) $m['biaya_tambahan'],
+            'kategori'        => $profile['kategori'],
+            'dampak_badge'    => $profile['dampak_badge'],
+            'perbedaan'       => $profile['perbedaan'],
+            'pengaruh_rasa'   => $profile['pengaruh_rasa'],
+        ];
+    }, $methods),
     JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE
 );
 
@@ -613,19 +621,36 @@ require __DIR__ . '/partials/head.php';
 
       <!-- Section 4: Teknik Penyeduhan Tersedia -->
       <section id="teknik-seduh" class="scroll-mt-28 space-y-6">
-        <div class="space-y-1.5">
-          <span class="text-[11px] font-bold uppercase tracking-[0.18em] text-terracotta block">Langkah 2 • Metode Ekstraksi</span>
-          <h2 class="font-editorial text-3xl sm:text-4xl text-espresso font-medium leading-tight">Pilih Teknik Penyeduhan</h2>
-          <p class="text-sm text-muted max-w-2xl">
-            Setiap alat seduh memiliki takaran gramasi, waktu ekstraksi, dan karakter rasa yang berbeda.
-          </p>
+        <div class="space-y-4">
+          <div class="space-y-1.5">
+            <span class="text-[11px] font-bold uppercase tracking-[0.18em] text-terracotta block">Langkah 2 • Metode Ekstraksi &amp; Sajian</span>
+            <h2 class="font-editorial text-3xl sm:text-4xl text-espresso font-medium leading-tight">Pilih Teknik Penyeduhan</h2>
+            <p class="text-sm text-muted max-w-2xl">
+              Kenali perbedaan tiap alat dan minuman — mulai dari pour-over yang menjaga kemurnian rasa hingga espresso &amp; susu.
+            </p>
+          </div>
+
+          <div class="bg-paper border border-sand rounded-xl p-4 sm:p-5 flex items-start gap-3.5 shadow-sm">
+            <div class="w-9 h-9 rounded-full bg-terracotta-soft text-terracotta flex items-center justify-center shrink-0 mt-0.5">
+              <span class="material-symbols-outlined text-[20px]">science</span>
+            </div>
+            <div class="text-xs sm:text-sm text-muted leading-relaxed">
+              <strong class="text-espresso block mb-0.5">Apakah teknik penyeduhan memengaruhi rasa beans?</strong>
+              <span>
+                <strong class="text-terracotta">Ya, sangat memengaruhi.</strong> Filter kertas (<em>V60, Kalita, Syphon</em>) menjaga aroma bunga/buah dan rasa asli beans tetap jernih; tanpa filter kertas atau rendaman dingin (<em>French Press, Cold Brew</em>) membuat body lebih tebal dan keasaman turun; sementara berbasis tekanan/susu (<em>Americano, Latte</em>) mengubah profil rasa menjadi lebih bold atau creamy manis.
+              </span>
+            </div>
+          </div>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           <?php foreach ($methods as $m): ?>
-            <?php $methodImgUrl = resolveMethodImageUrl((string) $m['nama_metode']); ?>
+            <?php
+              $methodImgUrl = resolveMethodImageUrl((string) $m['nama_metode']);
+              $methodProfile = getMethodProfile((string) $m['nama_metode']);
+            ?>
             <div class="group bg-paper border border-sand rounded-xl overflow-hidden flex flex-col justify-between hover:border-[#C9BFB0] hover:shadow-ambient hover:-translate-y-0.5 transition-all duration-300">
-              <div>
+              <div class="flex-1 flex flex-col">
                 <!-- Foto Teknik Penyeduhan (Utuh tanpa terpotong) -->
                 <div class="relative aspect-[4/3] w-full bg-[#231710] overflow-hidden">
                   <img
@@ -645,8 +670,8 @@ require __DIR__ . '/partials/head.php';
                   />
                   <div class="absolute inset-x-0 top-0 z-20 h-14 bg-gradient-to-b from-espresso-dark/35 to-transparent pointer-events-none"></div>
                   <div class="absolute top-3 left-3 z-30">
-                    <span class="px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-sm text-espresso text-[10px] font-bold uppercase tracking-wider border border-sand shadow-sm">
-                      Manual Brew
+                    <span class="px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider shadow-sm <?= e($methodProfile['badge_class']) ?>">
+                      <?= e($methodProfile['dampak_badge']) ?>
                     </span>
                   </div>
                   <div class="absolute top-3 right-3 z-30">
@@ -656,11 +681,26 @@ require __DIR__ . '/partials/head.php';
                   </div>
                 </div>
 
-                <div class="p-5 space-y-3">
-                  <h3 class="font-editorial text-2xl font-medium text-espresso group-hover:text-terracotta transition-colors">
-                    <?= e($m['nama_metode']) ?>
-                  </h3>
-                  <div class="bg-surface-low border border-sand/80 rounded-lg p-3 space-y-1.5 text-xs text-muted">
+                <div class="p-5 flex-1 flex flex-col justify-between gap-3.5">
+                  <div class="space-y-2.5">
+                    <div>
+                      <span class="text-[10px] font-semibold uppercase tracking-wider text-muted block"><?= e($methodProfile['kategori']) ?></span>
+                      <h3 class="font-editorial text-2xl font-medium text-espresso group-hover:text-terracotta transition-colors">
+                        <?= e($m['nama_metode']) ?>
+                      </h3>
+                    </div>
+
+                    <div class="space-y-2 text-xs leading-relaxed">
+                      <p class="text-muted">
+                        <strong class="text-espresso">Perbedaan:</strong> <?= e($methodProfile['perbedaan']) ?>
+                      </p>
+                      <p class="text-muted bg-white border border-sand rounded-lg p-2.5">
+                        <strong class="text-terracotta">Pengaruh ke rasa:</strong> <?= e($methodProfile['pengaruh_rasa']) ?>
+                      </p>
+                    </div>
+                  </div>
+
+                  <div class="bg-surface-low border border-sand/80 rounded-lg p-3 space-y-1 text-xs text-muted">
                     <div class="flex justify-between">
                       <span>Takaran Beans:</span>
                       <strong class="text-espresso tabular-nums"><?= (int) $m['rasio_kopi_gram'] ?>g</strong>
@@ -768,10 +808,13 @@ require __DIR__ . '/partials/head.php';
             <span class="block text-xs font-bold uppercase tracking-wider text-espresso">
               2. Pilih Teknik Penyeduhan
             </span>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="drawer-methods-grid">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5" id="drawer-methods-grid">
               <?php foreach ($methods as $idx => $m): ?>
-                <?php $drawerMethodImg = resolveMethodImageUrl((string) $m['nama_metode']); ?>
-                <label class="cursor-pointer rounded-xl border border-sand bg-paper p-3 transition-all hover:border-espresso has-[:checked]:bg-espresso has-[:checked]:text-cream has-[:checked]:border-espresso flex items-center gap-3">
+                <?php
+                  $drawerMethodImg = resolveMethodImageUrl((string) $m['nama_metode']);
+                  $drawerProfile = getMethodProfile((string) $m['nama_metode']);
+                ?>
+                <label class="cursor-pointer rounded-xl border border-sand bg-paper p-2.5 transition-all hover:border-espresso has-[:checked]:bg-espresso has-[:checked]:text-cream has-[:checked]:border-espresso flex items-center gap-2.5">
                   <input
                     type="radio"
                     name="metode_seduh_id"
@@ -786,13 +829,28 @@ require __DIR__ . '/partials/head.php';
                       <span class="font-semibold text-sm truncate"><?= e($m['nama_metode']) ?></span>
                       <span class="text-[11px] opacity-80 tabular-nums shrink-0"><?= (int) $m['rasio_kopi_gram'] ?>g</span>
                     </div>
-                    <div class="text-[11px] opacity-80 mt-0.5 flex items-center justify-between">
+                    <div class="text-[10px] opacity-85 truncate"><?= e($drawerProfile['dampak_badge']) ?></div>
+                    <div class="text-[10px] opacity-75 mt-0.5 flex items-center justify-between">
                       <span>~<?= (int) $m['estimasi_menit'] ?> mnt</span>
                       <span><?= (int) $m['biaya_tambahan'] > 0 ? '+' . e(formatRupiah((int) $m['biaya_tambahan'])) : 'Termasuk' ?></span>
                     </div>
                   </div>
                 </label>
               <?php endforeach; ?>
+            </div>
+
+            <!-- Penjelasan Perbedaan & Pengaruh ke Rasa Beans -->
+            <div id="drawer-method-insight" class="bg-white border border-sand rounded-xl p-3.5 space-y-1.5 text-xs">
+              <div class="flex items-center justify-between gap-2">
+                <span class="font-bold text-espresso uppercase tracking-wider text-[10px]" id="insight-category">-</span>
+                <span class="px-2 py-0.5 rounded-full bg-terracotta-soft text-[#8F3F27] text-[10px] font-bold" id="insight-impact-badge">-</span>
+              </div>
+              <p class="text-muted leading-relaxed">
+                <strong class="text-espresso">Perbedaan:</strong> <span id="insight-diff">-</span>
+              </p>
+              <p class="text-muted leading-relaxed">
+                <strong class="text-terracotta">Pengaruh ke rasa beans:</strong> <span id="insight-flavor">-</span>
+              </p>
             </div>
           </div>
 
@@ -989,6 +1047,15 @@ require __DIR__ . '/partials/head.php';
       if (beanMeta) {
         beanMeta.textContent = `${bean.origin} • ${bean.proses} • ${bean.tasting_notes}`;
       }
+
+      const insightCat = document.getElementById('insight-category');
+      const insightBadge = document.getElementById('insight-impact-badge');
+      const insightDiff = document.getElementById('insight-diff');
+      const insightFlavor = document.getElementById('insight-flavor');
+      if (insightCat) insightCat.textContent = method.kategori || 'Teknik Penyeduhan';
+      if (insightBadge) insightBadge.textContent = method.dampak_badge || '';
+      if (insightDiff) insightDiff.textContent = method.perbedaan || '';
+      if (insightFlavor) insightFlavor.textContent = method.pengaruh_rasa || '';
 
       const cukup = bean.stok_gram >= method.rasio_kopi_gram;
       const total = bean.harga + method.biaya_tambahan;

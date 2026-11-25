@@ -276,6 +276,140 @@ function resolveMethodImageUrl(string $namaMetode, ?string $dbUrl = null): strin
     if (str_contains($lower, 'syphon') || str_contains($lower, 'siphon')) {
         return 'https://images.unsplash.com/photo-1774014045872-3cc2b5e7e816?auto=format&fit=crop&w=900&q=80';
     }
+    if (str_contains($lower, 'french press')) {
+        return 'https://images.unsplash.com/photo-1763931413710-cb62218fc4ff?auto=format&fit=crop&w=900&q=80';
+    }
+    if (str_contains($lower, 'cold brew')) {
+        return 'https://images.unsplash.com/photo-1537371737569-a050cc10225b?auto=format&fit=crop&w=900&q=80';
+    }
+    if (str_contains($lower, 'americano')) {
+        return 'https://images.unsplash.com/photo-1558557019-051d86ef616f?auto=format&fit=crop&w=900&q=80';
+    }
+    if (str_contains($lower, 'latte')) {
+        return 'https://images.unsplash.com/photo-1534778101976-62847782c213?auto=format&fit=crop&w=900&q=80';
+    }
 
     return 'https://images.unsplash.com/photo-1620051787220-50768889e32c?auto=format&fit=crop&w=900&q=80';
+}
+
+/**
+ * Mengembalikan penjelasan perbedaan teknik penyeduhan & pengaruhnya terhadap rasa beans.
+ *
+ * @return array{kategori: string, dampak_badge: string, badge_class: string, perbedaan: string, pengaruh_rasa: string}
+ */
+function getMethodProfile(string $namaMetode): array
+{
+    $lower = strtolower($namaMetode);
+
+    if (str_contains($lower, 'v60')) {
+        return [
+            'kategori'      => 'Pour-Over • Filter Kertas Kerucut',
+            'dampak_badge'  => 'Rasa Asli Jernih',
+            'badge_class'   => 'bg-sage-soft text-sage-text border-[#C2D6CD]',
+            'perbedaan'     => 'Aliran air cepat melalui filter kertas berbentuk kerucut sehingga minyak kopi tersaring bersih.',
+            'pengaruh_rasa' => 'Sangat menjaga karakter asli beans: aroma floral/buah dan keasaman cerah terasa paling jelas dengan body ringan.',
+        ];
+    }
+    if (str_contains($lower, 'kalita')) {
+        return [
+            'kategori'      => 'Pour-Over • Flat-Bottom',
+            'dampak_badge'  => 'Seimbang & Bulat',
+            'badge_class'   => 'bg-surface-mid text-espresso border-sand',
+            'perbedaan'     => 'Dasar dripper datar dengan 3 lubang kecil membuat air terendam lebih merata dibanding V60.',
+            'pengaruh_rasa' => 'Menghaluskan keasaman tajam dari beans dan menonjolkan rasa manis karamel serta body lebih bulat.',
+        ];
+    }
+    if (str_contains($lower, 'aeropress')) {
+        return [
+            'kategori'      => 'Immersion + Tekanan Ringan',
+            'dampak_badge'  => 'Pekat & Juicy',
+            'badge_class'   => 'bg-surface-mid text-espresso border-sand',
+            'perbedaan'     => 'Kopi direndam singkat lalu didorong tekanan udara tangan melewati filter mikro.',
+            'pengaruh_rasa' => 'Membuat karakter rasa beans lebih padat dan juicy dengan keasaman yang lebih lembut daripada V60.',
+        ];
+    }
+    if (str_contains($lower, 'syphon') || str_contains($lower, 'siphon')) {
+        return [
+            'kategori'      => 'Vacuum Infusion • Tabung Kaca',
+            'dampak_badge'  => 'Aroma Tajam & Bersih',
+            'badge_class'   => 'bg-sage-soft text-sage-text border-[#C2D6CD]',
+            'perbedaan'     => 'Menggunakan tekanan uap panas dan ruang vakum kaca pada suhu stabil untuk menyeduh kopi.',
+            'pengaruh_rasa' => 'Menonjolkan aroma volatil beans sangat kuat dan rasa manis bersih menyerupai teh tanpa rasa pahit.',
+        ];
+    }
+    if (str_contains($lower, 'french press')) {
+        return [
+            'kategori'      => 'Full Immersion • Filter Logam',
+            'dampak_badge'  => 'Mengubah: Body Tebal',
+            'badge_class'   => 'bg-terracotta-soft text-[#8F3F27] border-[#F3D1C4]',
+            'perbedaan'     => 'Direndam penuh lalu disaring jaring logam (tanpa kertas), sehingga minyak alami kopi ikut terbawa.',
+            'pengaruh_rasa' => 'Memengaruhi rasa beans secara nyata: tekstur jauh lebih tebal/oily, nada cokelat & earthy menguat, sedangkan asam buah mereda.',
+        ];
+    }
+    if (str_contains($lower, 'cold brew')) {
+        return [
+            'kategori'      => 'Slow Cold Extraction',
+            'dampak_badge'  => 'Mengubah: Low Acid & Halus',
+            'badge_class'   => 'bg-terracotta-soft text-[#8F3F27] border-[#F3D1C4]',
+            'perbedaan'     => 'Diseduh dengan air dingin selama 12–16 jam tanpa pemanasan sama sekali.',
+            'pengaruh_rasa' => 'Mengubah profil rasa beans drastis: tingkat keasaman turun jauh (ramah lambung) dan rasa manis cokelat-karamel terasa dominan.',
+        ];
+    }
+    if (str_contains($lower, 'americano')) {
+        return [
+            'kategori'      => 'Espresso + Air Panas',
+            'dampak_badge'  => 'Mengubah: Bold & Intens',
+            'badge_class'   => 'bg-[#2C1E16] text-[#F5F0E6] border-[#2C1E16]',
+            'perbedaan'     => 'Diekstraksi dengan mesin tekanan tinggi (9 bar) menjadi shot espresso, lalu ditambah air panas.',
+            'pengaruh_rasa' => 'Sangat memengaruhi rasa beans: rasa jauh lebih pekat, pahit-manis intens dengan crema, sehingga catatan buah ringan menjadi lebih dalam.',
+        ];
+    }
+    if (str_contains($lower, 'latte')) {
+        return [
+            'kategori'      => 'Espresso + Susu Kukus',
+            'dampak_badge'  => 'Mengubah Total + Susu',
+            'badge_class'   => 'bg-terracotta text-white border-terracotta',
+            'perbedaan'     => 'Shot espresso pekat dipadukan dengan steamed milk hangat dan lapisan microfoam lembut.',
+            'pengaruh_rasa' => 'Paling memengaruhi rasa asli beans: susu menutupi keasaman buah/floral dan mengubahnya menjadi creamy, manis, dan cokelat susu.',
+        ];
+    }
+
+    return [
+        'kategori'      => 'Manual Brew Spesial',
+        'dampak_badge'  => 'Karakter Khas Alat',
+        'badge_class'   => 'bg-surface-mid text-espresso border-sand',
+        'perbedaan'     => 'Teknik penyeduhan dengan rasio gramasi dan waktu ekstraksi khusus sesuai metode alat.',
+        'pengaruh_rasa' => 'Setiap metode penyeduhan memengaruhi intensitas aroma, tingkat keasaman, dan ketebalan body dari beans yang dipilih.',
+    ];
+}
+
+/**
+ * Menambahkan opsi teknik penyeduhan lanjutan (French Press, Cold Brew, Americano, Latte)
+ * secara aman apabila database masih berisi 4 metode seed awal saja.
+ *
+ * @param array<int, array<string, mixed>> $methods
+ * @return array<int, array<string, mixed>>
+ */
+function syncExtraDefaultMethods(PDO $pdo, array $methods): array
+{
+    $existingNames = array_map(static fn(array $m): string => (string) $m['nama_metode'], $methods);
+    sort($existingNames);
+
+    if ($existingNames === ['AeroPress', 'Kalita Wave', 'Syphon', 'V60']) {
+        $pdo->exec(
+            "INSERT INTO metode_seduh (nama_metode, rasio_kopi_gram, estimasi_menit, biaya_tambahan) VALUES
+            ('French Press', 18, 4, 2000),
+            ('Cold Brew', 20, 2, 5000),
+            ('Americano', 18, 3, 2000),
+            ('Latte', 18, 4, 8000)
+            ON CONFLICT (nama_metode) DO NOTHING"
+        );
+        return $pdo->query(
+            'SELECT id, nama_metode, rasio_kopi_gram, estimasi_menit, biaya_tambahan
+             FROM metode_seduh
+             ORDER BY id ASC'
+        )->fetchAll();
+    }
+
+    return $methods;
 }
