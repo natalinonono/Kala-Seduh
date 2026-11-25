@@ -201,34 +201,40 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 $redirectAdmin('biji');
 
             case 'add_method':
+                ensureMetodeSeduhStockColumn($pdo);
                 $namaMetode = trim((string) ($_POST['nama_metode'] ?? ''));
                 $rasio = max(1, (int) ($_POST['rasio_kopi_gram'] ?? 15));
                 $estimasi = max(1, (int) ($_POST['estimasi_menit'] ?? 4));
                 $biaya = max(0, (int) ($_POST['biaya_tambahan'] ?? 0));
+                $rawStokPorsi = trim((string) ($_POST['stok_porsi'] ?? ''));
+                $stokPorsi = $rawStokPorsi === '' ? null : max(0, (int) $rawStokPorsi);
 
                 if ($namaMetode === '') {
                     setFlashMessage('error', 'Nama metode seduh wajib diisi.');
                     $redirectAdmin('metode');
                 }
                 $stmt = $pdo->prepare(
-                    'INSERT INTO metode_seduh (nama_metode, rasio_kopi_gram, estimasi_menit, biaya_tambahan)
-                     VALUES (:nama, :rasio, :estimasi, :biaya)'
+                    'INSERT INTO metode_seduh (nama_metode, rasio_kopi_gram, estimasi_menit, biaya_tambahan, stok_porsi)
+                     VALUES (:nama, :rasio, :estimasi, :biaya, :stok_porsi)'
                 );
-                $stmt->execute([
-                    ':nama'     => $namaMetode,
-                    ':rasio'    => $rasio,
-                    ':estimasi' => $estimasi,
-                    ':biaya'    => $biaya,
-                ]);
+                $stmt->bindValue(':nama', $namaMetode);
+                $stmt->bindValue(':rasio', $rasio, PDO::PARAM_INT);
+                $stmt->bindValue(':estimasi', $estimasi, PDO::PARAM_INT);
+                $stmt->bindValue(':biaya', $biaya, PDO::PARAM_INT);
+                $stmt->bindValue(':stok_porsi', $stokPorsi, $stokPorsi === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
+                $stmt->execute();
                 setFlashMessage('success', "Metode seduh \"{$namaMetode}\" berhasil ditambahkan.");
                 $redirectAdmin('metode');
 
             case 'edit_method':
+                ensureMetodeSeduhStockColumn($pdo);
                 $id = (int) ($_POST['id'] ?? 0);
                 $namaMetode = trim((string) ($_POST['nama_metode'] ?? ''));
                 $rasio = max(1, (int) ($_POST['rasio_kopi_gram'] ?? 15));
                 $estimasi = max(1, (int) ($_POST['estimasi_menit'] ?? 4));
                 $biaya = max(0, (int) ($_POST['biaya_tambahan'] ?? 0));
+                $rawStokPorsi = trim((string) ($_POST['stok_porsi'] ?? ''));
+                $stokPorsi = $rawStokPorsi === '' ? null : max(0, (int) $rawStokPorsi);
 
                 if ($id <= 0 || $namaMetode === '') {
                     setFlashMessage('error', 'Data metode seduh tidak valid.');
@@ -236,17 +242,40 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 }
                 $stmt = $pdo->prepare(
                     'UPDATE metode_seduh
-                     SET nama_metode = :nama, rasio_kopi_gram = :rasio, estimasi_menit = :estimasi, biaya_tambahan = :biaya
+                     SET nama_metode = :nama, rasio_kopi_gram = :rasio, estimasi_menit = :estimasi, biaya_tambahan = :biaya, stok_porsi = :stok_porsi
                      WHERE id = :id'
                 );
-                $stmt->execute([
-                    ':id'       => $id,
-                    ':nama'     => $namaMetode,
-                    ':rasio'    => $rasio,
-                    ':estimasi' => $estimasi,
-                    ':biaya'    => $biaya,
-                ]);
+                $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+                $stmt->bindValue(':nama', $namaMetode);
+                $stmt->bindValue(':rasio', $rasio, PDO::PARAM_INT);
+                $stmt->bindValue(':estimasi', $estimasi, PDO::PARAM_INT);
+                $stmt->bindValue(':biaya', $biaya, PDO::PARAM_INT);
+                $stmt->bindValue(':stok_porsi', $stokPorsi, $stokPorsi === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
+                $stmt->execute();
                 setFlashMessage('success', "Metode seduh \"{$namaMetode}\" berhasil diperbarui.");
+                $redirectAdmin('metode');
+
+            case 'restock_method':
+                ensureMetodeSeduhStockColumn($pdo);
+                $id = (int) ($_POST['id'] ?? 0);
+                $porsi = max(0, (int) ($_POST['porsi'] ?? 0));
+                $mode = (string) ($_POST['restock_mode'] ?? 'add');
+
+                if ($id <= 0) {
+                    setFlashMessage('error', 'ID metode seduh tidak valid.');
+                    $redirectAdmin('metode');
+                }
+                if ($mode === 'set') {
+                    $stmt = $pdo->prepare('UPDATE metode_seduh SET stok_porsi = :porsi WHERE id = :id RETURNING nama_metode, stok_porsi');
+                    $stmt->execute([':porsi' => $porsi, ':id' => $id]);
+                } else {
+                    $stmt = $pdo->prepare('UPDATE metode_seduh SET stok_porsi = COALESCE(stok_porsi, 0) + :porsi WHERE id = :id RETURNING nama_metode, stok_porsi');
+                    $stmt->execute([':porsi' => $porsi, ':id' => $id]);
+                }
+                $resM = $stmt->fetch();
+                if ($resM) {
+                    setFlashMessage('success', "Persediaan {$resM['nama_metode']} diperbarui menjadi {$resM['stok_porsi']} porsi.");
+                }
                 $redirectAdmin('metode');
 
             case 'delete_method':
@@ -336,12 +365,21 @@ try {
         }
     }
 
+    ensureMetodeSeduhStockColumn($pdo);
+
     $methods = $pdo->query(
-        'SELECT id, nama_metode, rasio_kopi_gram, estimasi_menit, biaya_tambahan
+        'SELECT id, nama_metode, rasio_kopi_gram, estimasi_menit, biaya_tambahan, stok_porsi
          FROM metode_seduh
          ORDER BY id ASC'
     )->fetchAll();
     $methods = syncExtraDefaultMethods($pdo, $methods);
+
+    $lowStockMethods = [];
+    foreach ($methods as $mRow) {
+        if ($mRow['stok_porsi'] !== null && (int) $mRow['stok_porsi'] <= 3) {
+            $lowStockMethods[] = $mRow;
+        }
+    }
 
     $queueOrders = $pdo->query(
         "SELECT
@@ -555,30 +593,44 @@ require __DIR__ . '/partials/head.php';
         </div>
       <?php endif; ?>
 
-      <!-- Banner Peringatan Stok < 100 Gram -->
-      <?php if (!empty($lowStockBeans)): ?>
+      <!-- Banner Peringatan Stok < 100 Gram atau Persediaan Teknik Seduh Menipis -->
+      <?php if (!empty($lowStockBeans) || !empty($lowStockMethods)): ?>
         <div class="no-print bg-terracotta-soft border border-[#E7B6A5] rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div class="flex items-start gap-3">
             <div class="w-9 h-9 rounded-full bg-terracotta text-white flex items-center justify-center shrink-0 mt-0.5">
               <span class="material-symbols-outlined text-[20px]">warning</span>
             </div>
-            <div>
+            <div class="space-y-1">
               <h2 class="text-sm font-bold text-[#772F18]">
-                Peringatan Stok Biji Kopi Menipis (&lt; 100 gram)
+                Peringatan Stok &amp; Persediaan Menipis
               </h2>
-              <p class="text-xs text-[#8F3F27] mt-0.5">
-                Segera lakukan restock untuk lot berikut agar pemesanan tidak terhenti:
-                <?php
-                  $lowLabels = array_map(
-                      static fn(array $lb): string => e($lb['nama_kopi']) . ' (' . (int) $lb['stok_gram'] . 'g)',
-                      $lowStockBeans
-                  );
-                  echo implode(' • ', $lowLabels);
-                ?>
-              </p>
+              <?php if (!empty($lowStockBeans)): ?>
+                <p class="text-xs text-[#8F3F27]">
+                  <strong>Beans (&lt; 100g):</strong>
+                  <?php
+                    $lowLabels = array_map(
+                        static fn(array $lb): string => e($lb['nama_kopi']) . ' (' . (int) $lb['stok_gram'] . 'g)',
+                        $lowStockBeans
+                    );
+                    echo implode(' • ', $lowLabels);
+                  ?>
+                </p>
+              <?php endif; ?>
+              <?php if (!empty($lowStockMethods)): ?>
+                <p class="text-xs text-[#8F3F27]">
+                  <strong>Persediaan Teknik Seduh (&le; 3 porsi):</strong>
+                  <?php
+                    $lowMethodLabels = array_map(
+                        static fn(array $lm): string => e($lm['nama_metode']) . ' (' . (int) $lm['stok_porsi'] . ' porsi)',
+                        $lowStockMethods
+                    );
+                    echo implode(' • ', $lowMethodLabels);
+                  ?>
+                </p>
+              <?php endif; ?>
             </div>
           </div>
-          <a href="/admin?tab=biji" class="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-espresso hover:bg-[#3D2C22] text-cream text-xs font-semibold transition-colors">
+          <a href="/admin?tab=<?= !empty($lowStockBeans) ? 'biji' : 'metode' ?>" class="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-espresso hover:bg-[#3D2C22] text-cream text-xs font-semibold transition-colors">
             <span>Kelola Stok</span>
             <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
           </a>
@@ -964,19 +1016,21 @@ require __DIR__ . '/partials/head.php';
             <?php foreach ($methods as $m): ?>
               <?php
                 $mId = (int) $m['id'];
+                $mStokPorsi = $m['stok_porsi'] !== null ? (int) $m['stok_porsi'] : null;
                 $mJsonAttr = e(json_encode([
                     'id'              => $mId,
                     'nama_metode'     => $m['nama_metode'],
                     'rasio_kopi_gram' => (int) $m['rasio_kopi_gram'],
                     'estimasi_menit'  => (int) $m['estimasi_menit'],
                     'biaya_tambahan'  => (int) $m['biaya_tambahan'],
+                    'stok_porsi'      => $mStokPorsi,
                 ], JSON_UNESCAPED_UNICODE));
               ?>
               <div class="bg-paper border border-sand rounded-xl p-5 flex flex-col justify-between space-y-4">
                 <div class="space-y-3">
                   <div class="flex items-start justify-between">
                     <div>
-                      <span class="text-[10px] uppercase tracking-widest text-terracotta font-bold">Manual Brew</span>
+                      <span class="text-[10px] uppercase tracking-widest text-terracotta font-bold">Teknik Seduh</span>
                       <h3 class="font-editorial text-2xl font-medium text-espresso"><?= e($m['nama_metode']) ?></h3>
                     </div>
                     <div class="w-9 h-9 rounded-full bg-surface-high flex items-center justify-center text-espresso">
@@ -996,26 +1050,53 @@ require __DIR__ . '/partials/head.php';
                       <span>Biaya Tambahan:</span>
                       <strong class="text-espresso tabular-nums"><?= e(formatRupiah((int) $m['biaya_tambahan'])) ?></strong>
                     </div>
+                    <div class="flex justify-between pt-1 border-t border-sand/70">
+                      <span>Persediaan Batch:</span>
+                      <?php if ($mStokPorsi !== null): ?>
+                        <strong class="tabular-nums <?= $mStokPorsi <= 0 ? 'text-[#93000A]' : ($mStokPorsi <= 3 ? 'text-[#8F3F27]' : 'text-sage-text') ?>">
+                          Terbatas (<?= $mStokPorsi ?> porsi)
+                        </strong>
+                      <?php else: ?>
+                        <span class="text-muted">Mengikuti stok beans</span>
+                      <?php endif; ?>
+                    </div>
                   </div>
                 </div>
 
-                <div class="flex items-center justify-end gap-2 pt-2 border-t border-sand">
-                  <button
-                    type="button"
-                    onclick='openMethodModal(<?= $mJsonAttr ?>)'
-                    class="px-3 py-1.5 rounded bg-surface-mid hover:bg-sand text-xs font-semibold text-espresso transition-colors"
-                  >
-                    Edit
-                  </button>
-                  <form method="POST" action="/admin?tab=metode" onsubmit="return confirm('Hapus metode seduh <?= e(addslashes((string) $m['nama_metode'])) ?>?');">
-                    <input type="hidden" name="csrf_token" value="<?= e($csrfToken) ?>" />
-                    <input type="hidden" name="tab" value="metode" />
-                    <input type="hidden" name="action" value="delete_method" />
-                    <input type="hidden" name="id" value="<?= $mId ?>" />
-                    <button type="submit" class="px-3 py-1.5 rounded hover:bg-[#FFEBEE] text-xs font-semibold text-[#93000A] transition-colors">
-                      Hapus
+                <div class="flex items-center justify-between gap-2 pt-2 border-t border-sand">
+                  <?php if ($mStokPorsi !== null): ?>
+                    <form method="POST" action="/admin?tab=metode" class="inline-flex items-center gap-1">
+                      <input type="hidden" name="csrf_token" value="<?= e($csrfToken) ?>" />
+                      <input type="hidden" name="tab" value="metode" />
+                      <input type="hidden" name="action" value="restock_method" />
+                      <input type="hidden" name="id" value="<?= $mId ?>" />
+                      <input type="hidden" name="restock_mode" value="add" />
+                      <input type="hidden" name="porsi" value="5" />
+                      <button type="submit" class="px-2.5 py-1.5 rounded bg-terracotta-soft hover:bg-terracotta text-[#8F3F27] hover:text-white text-xs font-semibold transition-colors">
+                        +5 Porsi
+                      </button>
+                    </form>
+                  <?php else: ?>
+                    <span></span>
+                  <?php endif; ?>
+                  <div class="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onclick='openMethodModal(<?= $mJsonAttr ?>)'
+                      class="px-3 py-1.5 rounded bg-surface-mid hover:bg-sand text-xs font-semibold text-espresso transition-colors"
+                    >
+                      Edit
                     </button>
-                  </form>
+                    <form method="POST" action="/admin?tab=metode" onsubmit="return confirm('Hapus metode seduh <?= e(addslashes((string) $m['nama_metode'])) ?>?');">
+                      <input type="hidden" name="csrf_token" value="<?= e($csrfToken) ?>" />
+                      <input type="hidden" name="tab" value="metode" />
+                      <input type="hidden" name="action" value="delete_method" />
+                      <input type="hidden" name="id" value="<?= $mId ?>" />
+                      <button type="submit" class="px-3 py-1.5 rounded hover:bg-[#FFEBEE] text-xs font-semibold text-[#93000A] transition-colors">
+                        Hapus
+                      </button>
+                    </form>
+                  </div>
                 </div>
               </div>
             <?php endforeach; ?>
@@ -1310,6 +1391,12 @@ require __DIR__ . '/partials/head.php';
           </div>
         </div>
 
+        <div class="space-y-1">
+          <label class="block text-xs font-semibold text-espresso">Persediaan Terbatas / Stok Batch (Porsi)</label>
+          <input id="method-stok-porsi" name="stok_porsi" type="number" min="0" placeholder="Kosongkan jika mengikuti stok beans (tanpa batas batch)" class="w-full h-10 px-3 rounded bg-white border border-sand text-sm" />
+          <p class="text-[11px] text-muted">Isi angka (misal 8) khusus untuk teknik batch seperti Cold Brew; kosongkan untuk seduhan fresh.</p>
+        </div>
+
         <div class="pt-3 flex items-center justify-end gap-2 border-t border-sand">
           <button type="button" onclick="closeModal('method-modal')" class="px-4 py-2 rounded-lg bg-surface-mid text-xs font-semibold">Batal</button>
           <button type="submit" class="px-4 py-2 rounded-lg bg-espresso hover:bg-[#3D2C22] text-cream text-xs font-semibold">Simpan Metode</button>
@@ -1361,8 +1448,9 @@ require __DIR__ . '/partials/head.php';
             <label class="block text-xs font-semibold text-espresso">Metode Seduh *</label>
             <select name="metode_seduh_id" required class="w-full h-10 px-3 rounded bg-white border border-sand text-sm">
               <?php foreach ($methods as $m): ?>
-                <option value="<?= (int) $m['id'] ?>">
-                  <?= e($m['nama_metode']) ?> (<?= (int) $m['rasio_kopi_gram'] ?>g • +<?= e(formatRupiah((int) $m['biaya_tambahan'])) ?>)
+                <?php $wStok = $m['stok_porsi'] !== null ? (int) $m['stok_porsi'] : null; ?>
+                <option value="<?= (int) $m['id'] ?>" <?= ($wStok !== null && $wStok <= 0) ? 'disabled' : '' ?>>
+                  <?= e($m['nama_metode']) ?> (<?= (int) $m['rasio_kopi_gram'] ?>g • +<?= e(formatRupiah((int) $m['biaya_tambahan'])) ?><?= $wStok !== null ? ' • ' . ($wStok > 0 ? "Sisa {$wStok} porsi" : 'HABIS') : '' ?>)
                 </option>
               <?php endforeach; ?>
             </select>
@@ -1468,6 +1556,7 @@ require __DIR__ . '/partials/head.php';
         document.getElementById('method-rasio').value = method.rasio_kopi_gram ?? 15;
         document.getElementById('method-estimasi').value = method.estimasi_menit ?? 4;
         document.getElementById('method-biaya').value = method.biaya_tambahan ?? 0;
+        document.getElementById('method-stok-porsi').value = method.stok_porsi !== null && method.stok_porsi !== undefined ? method.stok_porsi : '';
       } else {
         title.textContent = 'Tambah Metode Seduh';
         action.value = 'add_method';
@@ -1476,6 +1565,7 @@ require __DIR__ . '/partials/head.php';
         document.getElementById('method-rasio').value = '15';
         document.getElementById('method-estimasi').value = '4';
         document.getElementById('method-biaya').value = '0';
+        document.getElementById('method-stok-porsi').value = '';
       }
       openModal('method-modal');
     }

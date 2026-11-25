@@ -33,13 +33,14 @@ CREATE TABLE biji_kopi (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 3. Tabel Master Metode Seduh
+-- 3. Tabel Master Metode Seduh (stok_porsi NULL = tanpa batas kuota batch, INTEGER = stok terbatas seperti Cold Brew)
 CREATE TABLE metode_seduh (
     id SERIAL PRIMARY KEY,
     nama_metode VARCHAR(80) NOT NULL UNIQUE,
     rasio_kopi_gram INTEGER NOT NULL DEFAULT 15 CHECK (rasio_kopi_gram > 0),
     estimasi_menit INTEGER NOT NULL DEFAULT 4 CHECK (estimasi_menit > 0),
-    biaya_tambahan INTEGER NOT NULL DEFAULT 0 CHECK (biaya_tambahan >= 0)
+    biaya_tambahan INTEGER NOT NULL DEFAULT 0 CHECK (biaya_tambahan >= 0),
+    stok_porsi INTEGER DEFAULT NULL CHECK (stok_porsi IS NULL OR stok_porsi >= 0)
 );
 
 -- 4. Tabel Pesanan Manual Brew
@@ -129,15 +130,15 @@ INSERT INTO biji_kopi (nama_kopi, origin, proses, tasting_notes, stok_gram, harg
 );
 
 -- Master Metode Seduh
-INSERT INTO metode_seduh (nama_metode, rasio_kopi_gram, estimasi_menit, biaya_tambahan) VALUES
-('V60', 15, 4, 0),
-('Kalita Wave', 16, 5, 2000),
-('AeroPress', 18, 3, 3000),
-('Syphon', 20, 7, 10000),
-('French Press', 18, 4, 2000),
-('Cold Brew', 20, 2, 5000),
-('Americano', 18, 3, 2000),
-('Latte', 18, 4, 8000);
+INSERT INTO metode_seduh (nama_metode, rasio_kopi_gram, estimasi_menit, biaya_tambahan, stok_porsi) VALUES
+('V60', 15, 4, 0, NULL),
+('Kalita Wave', 16, 5, 2000, NULL),
+('AeroPress', 18, 3, 3000, NULL),
+('Syphon', 20, 7, 10000, NULL),
+('French Press', 18, 4, 2000, NULL),
+('Cold Brew', 20, 2, 5000, 8),
+('Americano', 18, 3, 2000, NULL),
+('Latte', 18, 4, 8000, NULL);
 
 -- Data Awal Pesanan (Hari ini & Kemarin)
 INSERT INTO pesanan (kode_pesanan, nama_pelanggan, nomor_meja, biji_kopi_id, metode_seduh_id, tipe_sajian, catatan, total_harga, status, created_at) VALUES

@@ -92,6 +92,7 @@ if (mb_strlen($catatan) > 300) {
 
 try {
     $pdo = getDbConnection();
+    ensureMetodeSeduhStockColumn($pdo);
     $pdo->beginTransaction();
 
     // 1. Kunci baris biji kopi (FOR UPDATE) agar stok aman dari race condition
@@ -106,9 +107,12 @@ try {
         $respondError('Biji kopi yang dipilih tidak ditemukan.', 404);
     }
 
-    // 2. Ambil parameter metode seduh (rasio gramasi & biaya tambahan)
+    // 2. Kunci & ambil parameter metode seduh (termasuk stok_porsi bila terbatas seperti Cold Brew)
     $stmtMethod = $pdo->prepare(
-        'SELECT id, nama_metode, rasio_kopi_gram, estimasi_menit, biaya_tambahan FROM metode_seduh WHERE id = :id'
+        'SELECT id, nama_metode, rasio_kopi_gram, estimasi_menit, biaya_tambahan, stok_porsi
+         FROM metode_seduh
+         WHERE id = :id
+         FOR UPDATE'
     );
     $stmtMethod->execute([':id' => $metodeSeduhId]);
     $method = $stmtMethod->fetch();
@@ -120,8 +124,21 @@ try {
 
     $stokSekarang = (int) $bean['stok_gram'];
     $butuhGram = (int) $method['rasio_kopi_gram'];
+    $methodStokPorsi = $method['stok_porsi'] !== null ? (int) $method['stok_porsi'] : null;
 
-    // 3. Validasi kecukupan stok gramasi
+    // 3a. Validasi persediaan teknik penyeduhan terbatas (misalnya Cold Brew)
+    if ($methodStokPorsi !== null && $methodStokPorsi <= 0) {
+        $pdo->rollBack();
+        $respondError(
+            sprintf(
+                'Maaf, persediaan %s saat ini sedang habis (0 porsi). Silakan pilih teknik penyeduhan lain.',
+                $method['nama_metode']
+            ),
+            409
+        );
+    }
+
+    // 3b. Validasi kecukupan stok gramasi beans
     if ($stokSekarang < $butuhGram) {
         $pdo->rollBack();
         $respondError(
@@ -186,6 +203,24 @@ try {
         $respondError('Gagal memperbarui stok biji kopi. Silakan ulangi pemesanan.', 409);
     }
 
+    // 6. Jika metode seduh memiliki stok persediaan terbatas (contoh: Cold Brew), kurangi 1 porsi
+    $updatedMethodStok = null;
+    if ($methodStokPorsi !== null) {
+        $stmtDeductMethod = $pdo->prepare(
+            'UPDATE metode_seduh
+             SET stok_porsi = stok_porsi - 1
+             WHERE id = :id AND stok_porsi >= 1
+             RETURNING stok_porsi'
+        );
+        $stmtDeductMethod->execute([':id' => $metodeSeduhId]);
+        $deductedMethod = $stmtDeductMethod->fetch();
+        if (!$deductedMethod) {
+            $pdo->rollBack();
+            $respondError("Persediaan {$method['nama_metode']} baru saja habis.", 409);
+        }
+        $updatedMethodStok = (int) $deductedMethod['stok_porsi'];
+    }
+
     $pdo->commit();
 
     $newStock = (int) $deducted['stok_gram'];
@@ -207,17 +242,22 @@ try {
 
     if ($isJson) {
         jsonResponse([
-            'success'           => true,
-            'message'           => "Pesanan {$kodePesanan} berhasil dikirim ke antrean barista!",
-            'order'             => $orderResult,
-            'biji_kopi_id'      => $bijiKopiId,
-            'updated_stok_gram' => $newStock,
+            'success'             => true,
+            'message'             => "Pesanan {$kodePesanan} berhasil dikirim ke antrean barista!",
+            'order'               => $orderResult,
+            'biji_kopi_id'        => $bijiKopiId,
+            'updated_stok_gram'   => $newStock,
+            'metode_seduh_id'     => $metodeSeduhId,
+            'updated_method_stok' => $updatedMethodStok,
         ], 201);
     }
 
+    $methodStockMsg = $updatedMethodStok !== null
+        ? " Persediaan {$method['nama_metode']} tersisa {$updatedMethodStok} porsi."
+        : '';
     setFlashMessage(
         'success',
-        "Pesanan {$kodePesanan} atas nama {$namaPelanggan} berhasil masuk antrean. Stok {$bean['nama_kopi']} tersisa {$newStock}g."
+        "Pesanan {$kodePesanan} berhasil masuk antrean. Stok {$bean['nama_kopi']} tersisa {$newStock}g.{$methodStockMsg}"
     );
     redirectTo($redirectTarget);
 } catch (Throwable $e) {

@@ -384,6 +384,40 @@ function getMethodProfile(string $namaMetode): array
 }
 
 /**
+ * Memastikan kolom stok_porsi pada tabel metode_seduh tersedia di database
+ * dan memberi stok batch awal (8 porsi) untuk Cold Brew bila baru ditambahkan.
+ */
+function ensureMetodeSeduhStockColumn(PDO $pdo): void
+{
+    static $checked = false;
+    if ($checked) {
+        return;
+    }
+
+    $exists = (int) $pdo->query(
+        "SELECT COUNT(*) FROM information_schema.columns
+         WHERE table_schema = 'public'
+           AND table_name = 'metode_seduh'
+           AND column_name = 'stok_porsi'"
+    )->fetchColumn();
+
+    if ($exists === 0) {
+        $pdo->exec(
+            'ALTER TABLE metode_seduh
+             ADD COLUMN IF NOT EXISTS stok_porsi INTEGER DEFAULT NULL
+             CHECK (stok_porsi IS NULL OR stok_porsi >= 0)'
+        );
+        $pdo->exec(
+            "UPDATE metode_seduh
+             SET stok_porsi = 8
+             WHERE LOWER(nama_metode) LIKE '%cold brew%' AND stok_porsi IS NULL"
+        );
+    }
+
+    $checked = true;
+}
+
+/**
  * Menambahkan opsi teknik penyeduhan lanjutan (French Press, Cold Brew, Americano, Latte)
  * secara aman apabila database masih berisi 4 metode seed awal saja.
  *
@@ -397,15 +431,15 @@ function syncExtraDefaultMethods(PDO $pdo, array $methods): array
 
     if ($existingNames === ['AeroPress', 'Kalita Wave', 'Syphon', 'V60']) {
         $pdo->exec(
-            "INSERT INTO metode_seduh (nama_metode, rasio_kopi_gram, estimasi_menit, biaya_tambahan) VALUES
-            ('French Press', 18, 4, 2000),
-            ('Cold Brew', 20, 2, 5000),
-            ('Americano', 18, 3, 2000),
-            ('Latte', 18, 4, 8000)
+            "INSERT INTO metode_seduh (nama_metode, rasio_kopi_gram, estimasi_menit, biaya_tambahan, stok_porsi) VALUES
+            ('French Press', 18, 4, 2000, NULL),
+            ('Cold Brew', 20, 2, 5000, 8),
+            ('Americano', 18, 3, 2000, NULL),
+            ('Latte', 18, 4, 8000, NULL)
             ON CONFLICT (nama_metode) DO NOTHING"
         );
         return $pdo->query(
-            'SELECT id, nama_metode, rasio_kopi_gram, estimasi_menit, biaya_tambahan
+            'SELECT id, nama_metode, rasio_kopi_gram, estimasi_menit, biaya_tambahan, stok_porsi
              FROM metode_seduh
              ORDER BY id ASC'
         )->fetchAll();

@@ -10,6 +10,7 @@ require_once __DIR__ . '/config/database.php';
 
 try {
     $pdo = getDbConnection();
+    ensureMetodeSeduhStockColumn($pdo);
 
     $stmtQueue = $pdo->query(
         "SELECT
@@ -61,11 +62,18 @@ try {
         $stocks[(int) $s['id']] = (int) $s['stok_gram'];
     }
 
+    $stmtMethodStocks = $pdo->query('SELECT id, stok_porsi FROM metode_seduh ORDER BY id ASC');
+    $methodStocks = [];
+    foreach ($stmtMethodStocks->fetchAll() as $ms) {
+        $methodStocks[(int) $ms['id']] = $ms['stok_porsi'] !== null ? (int) $ms['stok_porsi'] : null;
+    }
+
     jsonResponse([
-        'success'     => true,
-        'server_time' => date('H:i:s') . ' WIB',
-        'orders'      => $orders,
-        'stocks'      => $stocks,
+        'success'       => true,
+        'server_time'   => date('H:i:s') . ' WIB',
+        'orders'        => $orders,
+        'stocks'        => $stocks,
+        'method_stocks' => $methodStocks,
     ]);
 } catch (Throwable $e) {
     error_log('[Antrean API Error] ' . $e->getMessage());

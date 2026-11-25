@@ -26,8 +26,10 @@ try {
          ORDER BY CASE WHEN stok_gram > 0 THEN 0 ELSE 1 END, id ASC'
     )->fetchAll();
 
+    ensureMetodeSeduhStockColumn($pdo);
+
     $methods = $pdo->query(
-        'SELECT id, nama_metode, rasio_kopi_gram, estimasi_menit, biaya_tambahan
+        'SELECT id, nama_metode, rasio_kopi_gram, estimasi_menit, biaya_tambahan, stok_porsi
          FROM metode_seduh
          ORDER BY id ASC'
     )->fetchAll();
@@ -132,6 +134,7 @@ $methodsJson = json_encode(
             'rasio_kopi_gram' => (int) $m['rasio_kopi_gram'],
             'estimasi_menit'  => (int) $m['estimasi_menit'],
             'biaya_tambahan'  => (int) $m['biaya_tambahan'],
+            'stok_porsi'      => $m['stok_porsi'] !== null ? (int) $m['stok_porsi'] : null,
             'kategori'        => $profile['kategori'],
             'dampak_badge'    => $profile['dampak_badge'],
             'perbedaan'       => $profile['perbedaan'],
@@ -646,8 +649,12 @@ require __DIR__ . '/partials/head.php';
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           <?php foreach ($methods as $m): ?>
             <?php
+              $mId = (int) $m['id'];
               $methodImgUrl = resolveMethodImageUrl((string) $m['nama_metode']);
               $methodProfile = getMethodProfile((string) $m['nama_metode']);
+              $methodStok = $m['stok_porsi'] !== null ? (int) $m['stok_porsi'] : null;
+              $methodHabis = $methodStok !== null && $methodStok <= 0;
+              $methodMenipis = $methodStok !== null && $methodStok > 0 && $methodStok <= 3;
             ?>
             <div class="group bg-paper border border-sand rounded-xl overflow-hidden flex flex-col justify-between hover:border-[#C9BFB0] hover:shadow-ambient hover:-translate-y-0.5 transition-all duration-300">
               <div class="flex-1 flex flex-col">
@@ -675,9 +682,18 @@ require __DIR__ . '/partials/head.php';
                     </span>
                   </div>
                   <div class="absolute top-3 right-3 z-30">
-                    <span class="px-2.5 py-1 rounded-full bg-espresso/90 backdrop-blur-sm text-cream text-[11px] font-semibold tabular-nums shadow-sm">
-                      ~<?= (int) $m['estimasi_menit'] ?> menit
-                    </span>
+                    <?php if ($methodStok !== null): ?>
+                      <span
+                        id="method-card-badge-<?= $mId ?>"
+                        class="px-2.5 py-1 rounded-full text-[11px] font-semibold tabular-nums border shadow-sm <?= $methodHabis ? 'bg-[#FFEBEE] text-[#93000A] border-[#F5C6CB]' : ($methodMenipis ? 'bg-terracotta-soft text-[#8F3F27] border-[#F3D1C4]' : 'bg-white/95 text-espresso border-sand') ?>"
+                      >
+                        <?= $methodHabis ? 'Habis (0 porsi)' : 'Sisa ' . $methodStok . ' porsi' ?>
+                      </span>
+                    <?php else: ?>
+                      <span class="px-2.5 py-1 rounded-full bg-espresso/90 backdrop-blur-sm text-cream text-[11px] font-semibold tabular-nums shadow-sm">
+                        ~<?= (int) $m['estimasi_menit'] ?> menit
+                      </span>
+                    <?php endif; ?>
                   </div>
                 </div>
 
@@ -709,6 +725,14 @@ require __DIR__ . '/partials/head.php';
                       <span>Biaya Teknik:</span>
                       <strong class="text-espresso tabular-nums"><?= (int) $m['biaya_tambahan'] > 0 ? '+' . e(formatRupiah((int) $m['biaya_tambahan'])) : 'Termasuk' ?></strong>
                     </div>
+                    <?php if ($methodStok !== null): ?>
+                      <div class="flex justify-between pt-1 border-t border-sand/60">
+                        <span>Persediaan Batch:</span>
+                        <strong id="method-card-stock-<?= $mId ?>" class="tabular-nums <?= $methodHabis ? 'text-[#93000A]' : ($methodMenipis ? 'text-[#8F3F27]' : 'text-sage-text') ?>">
+                          <?= $methodHabis ? 'Habis (0 porsi)' : 'Terbatas • ' . $methodStok . ' porsi' ?>
+                        </strong>
+                      </div>
+                    <?php endif; ?>
                   </div>
                 </div>
               </div>
@@ -716,10 +740,12 @@ require __DIR__ . '/partials/head.php';
               <div class="px-5 pb-5">
                 <button
                   type="button"
-                  onclick="openOrderDrawer(null, <?= (int) $m['id'] ?>)"
-                  class="w-full py-2.5 rounded-lg bg-surface-high hover:bg-espresso text-espresso hover:text-cream text-xs font-semibold transition-colors flex items-center justify-center gap-1.5"
+                  id="btn-use-method-<?= $mId ?>"
+                  onclick="openOrderDrawer(null, <?= $mId ?>)"
+                  <?= $methodHabis ? 'disabled' : '' ?>
+                  class="w-full py-2.5 rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 <?= $methodHabis ? 'bg-surface-mid text-outline cursor-not-allowed' : 'bg-surface-high hover:bg-espresso text-espresso hover:text-cream' ?>"
                 >
-                  <span>Gunakan <?= e($m['nama_metode']) ?></span>
+                  <span><?= $methodHabis ? 'Persediaan Habis' : 'Gunakan ' . e($m['nama_metode']) ?></span>
                   <span class="material-symbols-outlined text-[15px]">arrow_forward</span>
                 </button>
               </div>
@@ -811,16 +837,23 @@ require __DIR__ . '/partials/head.php';
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5" id="drawer-methods-grid">
               <?php foreach ($methods as $idx => $m): ?>
                 <?php
+                  $mId = (int) $m['id'];
                   $drawerMethodImg = resolveMethodImageUrl((string) $m['nama_metode']);
                   $drawerProfile = getMethodProfile((string) $m['nama_metode']);
+                  $drawerMethodStok = $m['stok_porsi'] !== null ? (int) $m['stok_porsi'] : null;
+                  $drawerMethodHabis = $drawerMethodStok !== null && $drawerMethodStok <= 0;
                 ?>
-                <label class="cursor-pointer rounded-xl border border-sand bg-paper p-2.5 transition-all hover:border-espresso has-[:checked]:bg-espresso has-[:checked]:text-cream has-[:checked]:border-espresso flex items-center gap-2.5">
+                <label
+                  id="drawer-method-label-<?= $mId ?>"
+                  class="rounded-xl border border-sand bg-paper p-2.5 transition-all flex items-center gap-2.5 <?= $drawerMethodHabis ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-espresso has-[:checked]:bg-espresso has-[:checked]:text-cream has-[:checked]:border-espresso' ?>"
+                >
                   <input
                     type="radio"
                     name="metode_seduh_id"
-                    value="<?= (int) $m['id'] ?>"
+                    value="<?= $mId ?>"
                     class="hidden"
-                    <?= $idx === 0 ? 'checked' : '' ?>
+                    <?= $idx === 0 && !$drawerMethodHabis ? 'checked' : '' ?>
+                    <?= $drawerMethodHabis ? 'disabled' : '' ?>
                     onchange="updateOrderCalculator()"
                   />
                   <img src="<?= e($drawerMethodImg) ?>" alt="<?= e($m['nama_metode']) ?>" class="w-11 h-11 rounded-lg object-cover shrink-0 bg-surface-mid" />
@@ -829,7 +862,9 @@ require __DIR__ . '/partials/head.php';
                       <span class="font-semibold text-sm truncate"><?= e($m['nama_metode']) ?></span>
                       <span class="text-[11px] opacity-80 tabular-nums shrink-0"><?= (int) $m['rasio_kopi_gram'] ?>g</span>
                     </div>
-                    <div class="text-[10px] opacity-85 truncate"><?= e($drawerProfile['dampak_badge']) ?></div>
+                    <div class="text-[10px] opacity-85 truncate">
+                      <?= $drawerMethodStok !== null ? ($drawerMethodHabis ? 'Persediaan Habis' : 'Terbatas • Sisa ' . $drawerMethodStok . ' porsi') : e($drawerProfile['dampak_badge']) ?>
+                    </div>
                     <div class="text-[10px] opacity-75 mt-0.5 flex items-center justify-between">
                       <span>~<?= (int) $m['estimasi_menit'] ?> mnt</span>
                       <span><?= (int) $m['biaya_tambahan'] > 0 ? '+' . e(formatRupiah((int) $m['biaya_tambahan'])) : 'Termasuk' ?></span>
@@ -865,8 +900,12 @@ require __DIR__ . '/partials/head.php';
               <span class="font-semibold text-espresso tabular-nums" id="summary-method-fee">Rp 0</span>
             </div>
             <div class="flex justify-between text-muted">
-              <span>Takaran / Sisa Stok</span>
+              <span>Takaran / Sisa Stok Beans</span>
               <span class="font-semibold tabular-nums" id="summary-gram-check">-</span>
+            </div>
+            <div id="summary-method-stock-row" class="hidden flex justify-between text-muted">
+              <span>Persediaan Batch (<span id="summary-method-stock-name">-</span>)</span>
+              <span class="font-semibold tabular-nums" id="summary-method-stock-val">-</span>
             </div>
             <div class="pt-2 border-t border-sand flex justify-between items-center text-sm font-bold text-espresso">
               <span>Total</span>
@@ -984,8 +1023,14 @@ require __DIR__ . '/partials/head.php';
       }
       if (methodId) {
         const methodRadio = document.querySelector(`input[name="metode_seduh_id"][value="${methodId}"]`);
-        if (methodRadio) {
+        if (methodRadio && !methodRadio.disabled) {
           methodRadio.checked = true;
+        }
+      } else {
+        const checkedNow = document.querySelector('input[name="metode_seduh_id"]:checked');
+        if (!checkedNow || checkedNow.disabled) {
+          const firstValid = Array.from(document.querySelectorAll('input[name="metode_seduh_id"]')).find((el) => !el.disabled);
+          if (firstValid) firstValid.checked = true;
         }
       }
       const errBanner = document.getElementById('order-error-banner');
@@ -1057,7 +1102,9 @@ require __DIR__ . '/partials/head.php';
       if (insightDiff) insightDiff.textContent = method.perbedaan || '';
       if (insightFlavor) insightFlavor.textContent = method.pengaruh_rasa || '';
 
-      const cukup = bean.stok_gram >= method.rasio_kopi_gram;
+      const beansCukup = bean.stok_gram >= method.rasio_kopi_gram;
+      const metodeCukup = method.stok_porsi === null || method.stok_porsi > 0;
+      const bisaSeduh = beansCukup && metodeCukup;
       const total = bean.harga + method.biaya_tambahan;
 
       if (sumBean) sumBean.textContent = formatRupiah(bean.harga);
@@ -1067,16 +1114,92 @@ require __DIR__ . '/partials/head.php';
 
       if (sumGramCheck) {
         sumGramCheck.textContent = `Butuh ${method.rasio_kopi_gram}g / Sisa ${bean.stok_gram}g`;
-        sumGramCheck.className = cukup
+        sumGramCheck.className = beansCukup
           ? 'font-semibold text-sage-text tabular-nums'
           : 'font-semibold text-[#93000A] tabular-nums';
       }
 
+      const methodStockRow = document.getElementById('summary-method-stock-row');
+      const methodStockName = document.getElementById('summary-method-stock-name');
+      const methodStockVal = document.getElementById('summary-method-stock-val');
+      if (methodStockRow && methodStockName && methodStockVal) {
+        if (method.stok_porsi !== null) {
+          methodStockRow.classList.remove('hidden');
+          methodStockName.textContent = method.nama_metode;
+          methodStockVal.textContent = method.stok_porsi > 0 ? `Sisa ${method.stok_porsi} porsi` : 'Habis (0 porsi)';
+          methodStockVal.className = method.stok_porsi > 0
+            ? 'font-semibold text-sage-text tabular-nums'
+            : 'font-semibold text-[#93000A] tabular-nums';
+        } else {
+          methodStockRow.classList.add('hidden');
+        }
+      }
+
       if (submitBtn && submitLabel) {
-        submitBtn.disabled = !cukup;
-        submitLabel.textContent = cukup
-          ? 'Seduh Sekarang'
-          : `Stok ${bean.nama_kopi} Tidak Cukup`;
+        submitBtn.disabled = !bisaSeduh;
+        if (!metodeCukup) {
+          submitLabel.textContent = `Persediaan ${method.nama_metode} Habis`;
+        } else if (!beansCukup) {
+          submitLabel.textContent = `Stok ${bean.nama_kopi} Tidak Cukup`;
+        } else {
+          submitLabel.textContent = 'Seduh Sekarang';
+        }
+      }
+    }
+
+    function updateMethodStockUI(methodId, newMethodStock) {
+      const method = METHODS_DATA.find((m) => m.id === Number(methodId));
+      if (!method) return;
+      method.stok_porsi = newMethodStock === null || newMethodStock === undefined ? null : Number(newMethodStock);
+
+      const isLimited = method.stok_porsi !== null;
+      if (!isLimited) return;
+
+      const habis = method.stok_porsi <= 0;
+      const menipis = !habis && method.stok_porsi <= 3;
+
+      const cardBadge = document.getElementById(`method-card-badge-${methodId}`);
+      if (cardBadge) {
+        cardBadge.className = 'px-2.5 py-1 rounded-full text-[11px] font-semibold tabular-nums border shadow-sm ' + (
+          habis
+            ? 'bg-[#FFEBEE] text-[#93000A] border-[#F5C6CB]'
+            : menipis
+            ? 'bg-terracotta-soft text-[#8F3F27] border-[#F3D1C4]'
+            : 'bg-white/95 text-espresso border-sand'
+        );
+        cardBadge.textContent = habis ? 'Habis (0 porsi)' : `Sisa ${method.stok_porsi} porsi`;
+      }
+
+      const cardStock = document.getElementById(`method-card-stock-${methodId}`);
+      if (cardStock) {
+        cardStock.className = 'tabular-nums ' + (habis ? 'text-[#93000A]' : (menipis ? 'text-[#8F3F27]' : 'text-sage-text'));
+        cardStock.textContent = habis ? 'Habis (0 porsi)' : `Terbatas • ${method.stok_porsi} porsi`;
+      }
+
+      const cardBtn = document.getElementById(`btn-use-method-${methodId}`);
+      if (cardBtn) {
+        cardBtn.disabled = habis;
+        cardBtn.className = 'w-full py-2.5 rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 ' + (
+          habis
+            ? 'bg-surface-mid text-outline cursor-not-allowed'
+            : 'bg-surface-high hover:bg-espresso text-espresso hover:text-cream'
+        );
+        cardBtn.innerHTML = `<span>${habis ? 'Persediaan Habis' : 'Gunakan ' + escapeHtml(method.nama_metode)}</span><span class="material-symbols-outlined text-[15px]">arrow_forward</span>`;
+      }
+
+      const label = document.getElementById(`drawer-method-label-${methodId}`);
+      const radio = document.querySelector(`input[name="metode_seduh_id"][value="${methodId}"]`);
+      if (label && radio) {
+        radio.disabled = habis;
+        label.className = 'rounded-xl border border-sand bg-paper p-2.5 transition-all flex items-center gap-2.5 ' + (
+          habis
+            ? 'opacity-50 cursor-not-allowed'
+            : 'cursor-pointer hover:border-espresso has-[:checked]:bg-espresso has-[:checked]:text-cream has-[:checked]:border-espresso'
+        );
+        const subText = label.querySelector('.min-w-0 > div:nth-child(2)');
+        if (subText) {
+          subText.textContent = habis ? 'Persediaan Habis' : `Terbatas • Sisa ${method.stok_porsi} porsi`;
+        }
       }
     }
 
@@ -1177,14 +1300,20 @@ require __DIR__ . '/partials/head.php';
         }
 
         updateBeanCardStockUI(data.biji_kopi_id, data.updated_stok_gram);
+        if (data.metode_seduh_id && data.updated_method_stok !== undefined) {
+          updateMethodStockUI(data.metode_seduh_id, data.updated_method_stok);
+        }
         closeOrderDrawer();
         form.reset();
-        const firstMethod = form.querySelector('input[name="metode_seduh_id"]');
+        const firstMethod = Array.from(form.querySelectorAll('input[name="metode_seduh_id"]')).find((el) => !el.disabled);
         if (firstMethod) firstMethod.checked = true;
 
+        const batchNote = data.updated_method_stok !== null && data.updated_method_stok !== undefined
+          ? ` • Persediaan ${data.order.nama_metode} sisa ${data.updated_method_stok} porsi.`
+          : '';
         showToast(
           `Pesanan ${data.order.kode_pesanan} Diterima`,
-          `${data.order.nama_kopi} (${data.order.nama_metode}) • Sisa stok ${data.updated_stok_gram}g.`
+          `${data.order.nama_kopi} (${data.order.nama_metode}) • Sisa beans ${data.updated_stok_gram}g${batchNote}`
         );
         await refreshLiveQueue(false);
       } catch (err) {
@@ -1270,8 +1399,13 @@ require __DIR__ . '/partials/head.php';
           Object.entries(data.stocks).forEach(([id, gram]) => {
             updateBeanCardStockUI(Number(id), Number(gram));
           });
-          updateOrderCalculator();
         }
+        if (data.method_stocks) {
+          Object.entries(data.method_stocks).forEach(([id, porsi]) => {
+            updateMethodStockUI(Number(id), porsi === null ? null : Number(porsi));
+          });
+        }
+        updateOrderCalculator();
         const clockEl = document.getElementById('live-clock-badge');
         if (clockEl && data.server_time) {
           clockEl.textContent = 'Waktu Bar: ' + data.server_time;
