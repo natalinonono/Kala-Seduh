@@ -20,13 +20,14 @@ $queueOrders = [];
 try {
     $pdo = getDbConnection();
 
+    ensureBijiKopiHargaPerKgColumn($pdo);
+    ensureMetodeSeduhStockColumn($pdo);
+
     $beans = $pdo->query(
-        'SELECT id, nama_kopi, origin, proses, tasting_notes, stok_gram, harga, gambar_url
+        'SELECT id, nama_kopi, origin, proses, tasting_notes, stok_gram, harga, harga_per_kg, gambar_url
          FROM biji_kopi
          ORDER BY CASE WHEN stok_gram > 0 THEN 0 ELSE 1 END, id ASC'
     )->fetchAll();
-
-    ensureMetodeSeduhStockColumn($pdo);
 
     $methods = $pdo->query(
         'SELECT id, nama_metode, rasio_kopi_gram, estimasi_menit, biaya_tambahan, stok_porsi
@@ -120,6 +121,7 @@ $beansJson = json_encode(
         'tasting_notes' => (string) $b['tasting_notes'],
         'stok_gram'     => (int) $b['stok_gram'],
         'harga'         => (int) $b['harga'],
+        'harga_per_kg'  => (int) ($b['harga_per_kg'] ?? 250000),
         'gambar_url'    => resolveBeanImageUrl((string) $b['gambar_url']),
     ], $beans),
     JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE
@@ -597,10 +599,13 @@ require __DIR__ . '/partials/head.php';
                 </div>
 
                 <!-- Harga & Tombol Pilih -->
-                <div class="px-5 py-4 flex items-center justify-between border-t border-sand/80 bg-surface/50">
-                  <div>
-                    <span class="text-[10px] uppercase tracking-wider text-muted font-semibold block">Harga Mulai</span>
+                <div class="px-5 py-4 flex items-center justify-between gap-3 border-t border-sand/80 bg-surface/50">
+                  <div class="min-w-0">
+                    <span class="text-[10px] uppercase tracking-wider text-muted font-semibold block">Harga Kopi / Cup</span>
                     <span class="text-lg font-bold text-espresso tabular-nums"><?= e(formatRupiah((int) $bean['harga'])) ?></span>
+                    <span class="text-[11px] text-muted block tabular-nums mt-0.5">
+                      Harga Beans: <strong class="font-semibold text-espresso/80"><?= e(formatRupiah((int) ($bean['harga_per_kg'] ?? 250000))) ?>/kg</strong>
+                    </span>
                   </div>
                   <button
                     type="button"
@@ -786,8 +791,8 @@ require __DIR__ . '/partials/head.php';
   </main>
 
   <!-- Slide-Over Order Drawer (Form Pemesanan Interaktif) -->
-  <div id="order-drawer" class="fixed inset-0 z-50 pointer-events-none opacity-0 transition-opacity duration-300 flex justify-end" aria-hidden="true">
-    <div onclick="closeOrderDrawer()" class="absolute inset-0 bg-espresso-dark/50 backdrop-blur-sm"></div>
+  <div id="order-drawer" class="fixed inset-0 z-50 hidden pointer-events-none opacity-0 transition-opacity duration-300 justify-end" aria-hidden="true">
+    <div id="order-drawer-backdrop" onclick="closeOrderDrawer()" class="absolute inset-0 bg-espresso-dark/50 backdrop-blur-sm transition-opacity duration-300 opacity-0"></div>
 
     <div id="order-drawer-panel" class="relative w-full max-w-lg bg-surface h-full shadow-2xl overflow-y-auto transform translate-x-full transition-transform duration-300 ease-out pointer-events-auto p-6 sm:p-8 flex flex-col justify-between border-l border-sand">
       <div class="space-y-6">
@@ -819,7 +824,7 @@ require __DIR__ . '/partials/head.php';
             >
               <?php foreach ($beans as $b): ?>
                 <option value="<?= (int) $b['id'] ?>">
-                  <?= e($b['nama_kopi']) ?> — <?= e(formatRupiah((int) $b['harga'])) ?> (Sisa <?= (int) $b['stok_gram'] ?>g)
+                  <?= e($b['nama_kopi']) ?> — Cup <?= e(formatRupiah((int) $b['harga'])) ?> • Beans <?= e(formatRupiah((int) ($b['harga_per_kg'] ?? 250000))) ?>/kg (Sisa <?= (int) $b['stok_gram'] ?>g)
                 </option>
               <?php endforeach; ?>
             </select>
@@ -892,8 +897,12 @@ require __DIR__ . '/partials/head.php';
           <!-- Ringkasan Harga & Validasi Stok -->
           <div class="bg-surface-low border border-sand rounded-xl p-4 space-y-2 text-xs">
             <div class="flex justify-between text-muted">
-              <span>Harga Beans</span>
+              <span>Harga Kopi (Seduh / Cup)</span>
               <span class="font-semibold text-espresso tabular-nums" id="summary-bean-price">Rp 0</span>
+            </div>
+            <div class="flex justify-between text-muted text-[11px]">
+              <span>Harga Roasted Beans (Per kg)</span>
+              <span class="font-medium text-espresso/80 tabular-nums" id="summary-bean-kg-price">Rp 0/kg</span>
             </div>
             <div class="flex justify-between text-muted">
               <span>Teknik Penyeduhan (<span id="summary-method-name">-</span>)</span>
@@ -955,6 +964,7 @@ require __DIR__ . '/partials/head.php';
     const METHODS_DATA = <?= $methodsJson ?: '[]' ?>;
     const MIN_RATIO = <?= (int) $minRatio ?>;
     let activeProsesFilter = 'all';
+    let drawerCloseTimer = null;
 
     function formatRupiah(num) {
       return 'Rp ' + Number(num || 0).toLocaleString('id-ID');
@@ -1041,25 +1051,49 @@ require __DIR__ . '/partials/head.php';
 
       updateOrderCalculator();
 
+      if (drawerCloseTimer) {
+        clearTimeout(drawerCloseTimer);
+        drawerCloseTimer = null;
+      }
+
       const drawer = document.getElementById('order-drawer');
+      const backdrop = document.getElementById('order-drawer-backdrop');
       const panel = document.getElementById('order-drawer-panel');
       drawer.setAttribute('aria-hidden', 'false');
-      drawer.classList.remove('pointer-events-none', 'opacity-0');
+      drawer.classList.remove('hidden', 'pointer-events-none', 'opacity-0');
+      drawer.classList.add('flex');
+      void drawer.offsetWidth;
       drawer.classList.add('opacity-100');
+      if (backdrop) {
+        backdrop.classList.remove('opacity-0');
+        backdrop.classList.add('opacity-100');
+      }
       panel.classList.remove('translate-x-full');
       panel.classList.add('translate-x-0');
     }
 
     function closeOrderDrawer() {
       const drawer = document.getElementById('order-drawer');
+      const backdrop = document.getElementById('order-drawer-backdrop');
       const panel = document.getElementById('order-drawer-panel');
+      if (!drawer || !panel) return;
       drawer.setAttribute('aria-hidden', 'true');
-      drawer.classList.add('opacity-0');
+      drawer.classList.remove('opacity-100');
+      drawer.classList.add('opacity-0', 'pointer-events-none');
+      if (backdrop) {
+        backdrop.classList.remove('opacity-100');
+        backdrop.classList.add('opacity-0');
+      }
       panel.classList.remove('translate-x-0');
       panel.classList.add('translate-x-full');
-      setTimeout(() => {
-        drawer.classList.add('pointer-events-none');
-      }, 300);
+      if (drawerCloseTimer) {
+        clearTimeout(drawerCloseTimer);
+      }
+      drawerCloseTimer = setTimeout(() => {
+        drawer.classList.remove('flex');
+        drawer.classList.add('hidden');
+        drawerCloseTimer = null;
+      }, 310);
     }
 
     function updateOrderCalculator() {
@@ -1073,6 +1107,7 @@ require __DIR__ . '/partials/head.php';
       const beanMeta = document.getElementById('drawer-bean-meta');
       const beanThumb = document.getElementById('drawer-bean-thumb');
       const sumBean = document.getElementById('summary-bean-price');
+      const sumBeanKg = document.getElementById('summary-bean-kg-price');
       const sumMethodName = document.getElementById('summary-method-name');
       const sumMethodFee = document.getElementById('summary-method-fee');
       const sumGramCheck = document.getElementById('summary-gram-check');
@@ -1090,7 +1125,7 @@ require __DIR__ . '/partials/head.php';
         beanThumb.alt = bean.nama_kopi;
       }
       if (beanMeta) {
-        beanMeta.textContent = `${bean.origin} • ${bean.proses} • ${bean.tasting_notes}`;
+        beanMeta.textContent = `${bean.origin} • ${bean.proses} • ${bean.tasting_notes} • Beans ${formatRupiah(bean.harga_per_kg)}/kg`;
       }
 
       const insightCat = document.getElementById('insight-category');
@@ -1108,6 +1143,7 @@ require __DIR__ . '/partials/head.php';
       const total = bean.harga + method.biaya_tambahan;
 
       if (sumBean) sumBean.textContent = formatRupiah(bean.harga);
+      if (sumBeanKg) sumBeanKg.textContent = `${formatRupiah(bean.harga_per_kg)}/kg`;
       if (sumMethodName) sumMethodName.textContent = method.nama_metode;
       if (sumMethodFee) sumMethodFee.textContent = formatRupiah(method.biaya_tambahan);
       if (sumTotal) sumTotal.textContent = formatRupiah(total);
@@ -1247,7 +1283,7 @@ require __DIR__ . '/partials/head.php';
       }
 
       if (option && bean) {
-        option.textContent = `${bean.nama_kopi} — ${formatRupiah(bean.harga)} (Sisa ${newStock}g)`;
+        option.textContent = `${bean.nama_kopi} — Cup ${formatRupiah(bean.harga)} • Beans ${formatRupiah(bean.harga_per_kg)}/kg (Sisa ${newStock}g)`;
       }
     }
 
@@ -1434,6 +1470,11 @@ require __DIR__ . '/partials/head.php';
       setInterval(() => refreshLiveQueue(false), 5000);
       document.querySelectorAll('#main-nav .nav-link').forEach((link) => {
         link.addEventListener('click', () => setActiveNavLink(link.getAttribute('href')));
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          closeOrderDrawer();
+        }
       });
     });
   </script>

@@ -29,6 +29,7 @@ CREATE TABLE biji_kopi (
     tasting_notes TEXT NOT NULL,
     stok_gram INTEGER NOT NULL DEFAULT 0 CHECK (stok_gram >= 0),
     harga INTEGER NOT NULL CHECK (harga >= 0),
+    harga_per_kg INTEGER NOT NULL DEFAULT 250000 CHECK (harga_per_kg >= 0),
     gambar_url TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -72,15 +73,16 @@ INSERT INTO users (username, password, nama_lengkap, role) VALUES
 ('admin', '$2y$10$i0Wk8C06xur2iTjXja6oxeNXV8nEfCIc9KrARDfis6hhyvz444ZAe', 'Raka Mahendra', 'admin'),
 ('barista', '$2y$10$RGEmsseqrQO.iCdD36GjquJrxZ33J9LnhOTM0lNu3qRigF1qGilzG', 'Arya Pratama', 'barista');
 
--- Katalog Biji Kopi (6 Single Origin, termasuk 1 lot stok kritis < 100g untuk demo peringatan)
-INSERT INTO biji_kopi (nama_kopi, origin, proses, tasting_notes, stok_gram, harga, gambar_url) VALUES
+-- Katalog Biji Kopi (6 Single Origin, harga = tarif per cup seduhan, harga_per_kg = tarif roasted beans per 1 kg)
+INSERT INTO biji_kopi (nama_kopi, origin, proses, tasting_notes, stok_gram, harga, harga_per_kg, gambar_url) VALUES
 (
     'Aceh Gayo Pantan Musara',
     'Aceh Tengah • 1.650 mdpl',
     'Anaerobic',
     'Blackcurrant, Peach Tea, Wild Honey',
     850,
-    45000,
+    22000,
+    320000,
     'https://images.unsplash.com/photo-1590093217544-da597729d81a?auto=format&fit=crop&w=900&q=80'
 ),
 (
@@ -89,7 +91,8 @@ INSERT INTO biji_kopi (nama_kopi, origin, proses, tasting_notes, stok_gram, harg
     'Washed',
     'Milk Chocolate, Caramel Apple, Nutty',
     1200,
-    38000,
+    18000,
+    240000,
     'https://images.unsplash.com/photo-1561766859-f29422062842?auto=format&fit=crop&w=900&q=80'
 ),
 (
@@ -98,7 +101,8 @@ INSERT INTO biji_kopi (nama_kopi, origin, proses, tasting_notes, stok_gram, harg
     'Washed',
     'Jasmine Flower, Bergamot, Lemon Zest',
     420,
-    55000,
+    26000,
+    420000,
     'https://images.unsplash.com/photo-1703113391576-3beb676b7638?auto=format&fit=crop&w=900&q=80'
 ),
 (
@@ -107,7 +111,8 @@ INSERT INTO biji_kopi (nama_kopi, origin, proses, tasting_notes, stok_gram, harg
     'Honey',
     'Ripe Banana, Jackfruit, Brown Sugar',
     960,
-    42000,
+    20000,
+    280000,
     'https://images.unsplash.com/photo-1692299108834-038511803008?auto=format&fit=crop&w=900&q=80'
 ),
 (
@@ -116,7 +121,8 @@ INSERT INTO biji_kopi (nama_kopi, origin, proses, tasting_notes, stok_gram, harg
     'Natural',
     'Dark Cocoa, Nutmeg Spice, Cedar Wood',
     1500,
-    40000,
+    19000,
+    260000,
     'https://images.unsplash.com/photo-1567613747125-f7ac12360d77?auto=format&fit=crop&w=900&q=80'
 ),
 (
@@ -125,28 +131,29 @@ INSERT INTO biji_kopi (nama_kopi, origin, proses, tasting_notes, stok_gram, harg
     'Washed',
     'Blackberry, Grapefruit, Cane Sugar',
     75,
-    60000,
+    28000,
+    460000,
     'https://images.unsplash.com/photo-1712251769294-16163363ebef?auto=format&fit=crop&w=900&q=80'
 );
 
 -- Master Metode Seduh
 INSERT INTO metode_seduh (nama_metode, rasio_kopi_gram, estimasi_menit, biaya_tambahan, stok_porsi) VALUES
 ('V60', 15, 4, 0, NULL),
-('Kalita Wave', 16, 5, 2000, NULL),
-('AeroPress', 18, 3, 3000, NULL),
-('Syphon', 20, 7, 10000, NULL),
-('French Press', 18, 4, 2000, NULL),
-('Cold Brew', 20, 2, 5000, 8),
-('Americano', 18, 3, 2000, NULL),
-('Latte', 18, 4, 8000, NULL);
+('Kalita Wave', 16, 5, 1000, NULL),
+('AeroPress', 18, 3, 2000, NULL),
+('Syphon', 20, 7, 5000, NULL),
+('French Press', 18, 4, 1000, NULL),
+('Cold Brew', 20, 2, 3000, 8),
+('Americano', 18, 3, 0, NULL),
+('Latte', 18, 4, 4000, NULL);
 
 -- Data Awal Pesanan (Hari ini & Kemarin)
 INSERT INTO pesanan (kode_pesanan, nama_pelanggan, nomor_meja, biji_kopi_id, metode_seduh_id, tipe_sajian, catatan, total_harga, status, created_at) VALUES
-('KS-040', 'Maya Larasati', 'Meja 05', 5, 4, 'Hot', 'Ingin body yang tebal dan hangat.', 50000, 'Selesai', NOW() - INTERVAL '1 day'),
-('KS-041', 'Kevin Pratama', 'Bar Seat 04', 6, 1, 'Iced', 'Japanese Iced, es batu secukupnya.', 60000, 'Selesai', NOW() - INTERVAL '35 minutes'),
-('KS-042', 'Nabila Putri', 'Bar Seat 02', 4, 3, 'Iced', 'Ekstraksi manis buah tropis.', 45000, 'Sedang Diseduh', NOW() - INTERVAL '14 minutes'),
-('KS-043', 'Rian Santoso', 'Meja 03', 2, 1, 'Hot', 'Sajikan dengan suhu agak hangat 65°C.', 38000, 'Sedang Diseduh', NOW() - INTERVAL '9 minutes'),
-('KS-044', 'Sarah Kusuma', 'Meja 07', 3, 2, 'Hot', 'Minta kartu tasting notes.', 57000, 'Menunggu', NOW() - INTERVAL '5 minutes'),
-('KS-045', 'Dimas Wicaksono', 'Bar Seat 01', 1, 1, 'Hot', 'Fokus ke aroma floral dan sweet finish.', 45000, 'Menunggu', NOW() - INTERVAL '2 minutes');
+('KS-040', 'Maya Larasati', 'Meja 05', 5, 4, 'Hot', 'Ingin body yang tebal dan hangat.', 24000, 'Selesai', NOW() - INTERVAL '1 day'),
+('KS-041', 'Kevin Pratama', 'Bar Seat 04', 6, 1, 'Iced', 'Japanese Iced, es batu secukupnya.', 28000, 'Selesai', NOW() - INTERVAL '35 minutes'),
+('KS-042', 'Nabila Putri', 'Bar Seat 02', 4, 3, 'Iced', 'Ekstraksi manis buah tropis.', 22000, 'Sedang Diseduh', NOW() - INTERVAL '14 minutes'),
+('KS-043', 'Rian Santoso', 'Meja 03', 2, 1, 'Hot', 'Sajikan dengan suhu agak hangat 65°C.', 18000, 'Sedang Diseduh', NOW() - INTERVAL '9 minutes'),
+('KS-044', 'Sarah Kusuma', 'Meja 07', 3, 2, 'Hot', 'Minta kartu tasting notes.', 27000, 'Menunggu', NOW() - INTERVAL '5 minutes'),
+('KS-045', 'Dimas Wicaksono', 'Bar Seat 01', 1, 1, 'Hot', 'Fokus ke aroma floral dan sweet finish.', 22000, 'Menunggu', NOW() - INTERVAL '2 minutes');
 
 COMMIT;

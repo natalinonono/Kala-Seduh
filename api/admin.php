@@ -62,6 +62,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
     try {
         $pdo = getDbConnection();
+        ensureBijiKopiHargaPerKgColumn($pdo);
 
         switch ($action) {
             case 'update_status':
@@ -88,6 +89,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 $notes = trim((string) ($_POST['tasting_notes'] ?? ''));
                 $stok = max(0, (int) ($_POST['stok_gram'] ?? 0));
                 $harga = max(0, (int) ($_POST['harga'] ?? 0));
+                $hargaPerKg = max(0, (int) ($_POST['harga_per_kg'] ?? 0));
                 $gambar = trim((string) ($_POST['gambar_url'] ?? ''));
 
                 if ($gambar === '' || !filter_var($gambar, FILTER_VALIDATE_URL)) {
@@ -99,17 +101,18 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 }
 
                 $stmt = $pdo->prepare(
-                    'INSERT INTO biji_kopi (nama_kopi, origin, proses, tasting_notes, stok_gram, harga, gambar_url)
-                     VALUES (:nama, :origin, :proses, :notes, :stok, :harga, :gambar)'
+                    'INSERT INTO biji_kopi (nama_kopi, origin, proses, tasting_notes, stok_gram, harga, harga_per_kg, gambar_url)
+                     VALUES (:nama, :origin, :proses, :notes, :stok, :harga, :harga_kg, :gambar)'
                 );
                 $stmt->execute([
-                    ':nama'   => $nama,
-                    ':origin' => $origin,
-                    ':proses' => $proses,
-                    ':notes'  => $notes,
-                    ':stok'   => $stok,
-                    ':harga'  => $harga,
-                    ':gambar' => $gambar,
+                    ':nama'     => $nama,
+                    ':origin'   => $origin,
+                    ':proses'   => $proses,
+                    ':notes'    => $notes,
+                    ':stok'     => $stok,
+                    ':harga'    => $harga,
+                    ':harga_kg' => $hargaPerKg,
+                    ':gambar'   => $gambar,
                 ]);
                 setFlashMessage('success', "Biji kopi \"{$nama}\" berhasil ditambahkan ke katalog.");
                 $redirectAdmin('biji');
@@ -122,6 +125,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 $notes = trim((string) ($_POST['tasting_notes'] ?? ''));
                 $stok = max(0, (int) ($_POST['stok_gram'] ?? 0));
                 $harga = max(0, (int) ($_POST['harga'] ?? 0));
+                $hargaPerKg = max(0, (int) ($_POST['harga_per_kg'] ?? 0));
                 $gambar = trim((string) ($_POST['gambar_url'] ?? ''));
 
                 if ($gambar === '' || !filter_var($gambar, FILTER_VALIDATE_URL)) {
@@ -135,18 +139,20 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 $stmt = $pdo->prepare(
                     'UPDATE biji_kopi
                      SET nama_kopi = :nama, origin = :origin, proses = :proses,
-                         tasting_notes = :notes, stok_gram = :stok, harga = :harga, gambar_url = :gambar
+                         tasting_notes = :notes, stok_gram = :stok, harga = :harga,
+                         harga_per_kg = :harga_kg, gambar_url = :gambar
                      WHERE id = :id'
                 );
                 $stmt->execute([
-                    ':id'     => $id,
-                    ':nama'   => $nama,
-                    ':origin' => $origin,
-                    ':proses' => $proses,
-                    ':notes'  => $notes,
-                    ':stok'   => $stok,
-                    ':harga'  => $harga,
-                    ':gambar' => $gambar,
+                    ':id'       => $id,
+                    ':nama'     => $nama,
+                    ':origin'   => $origin,
+                    ':proses'   => $proses,
+                    ':notes'    => $notes,
+                    ':stok'     => $stok,
+                    ':harga'    => $harga,
+                    ':harga_kg' => $hargaPerKg,
+                    ':gambar'   => $gambar,
                 ]);
                 setFlashMessage('success', "Data biji kopi \"{$nama}\" berhasil diperbarui.");
                 $redirectAdmin('biji');
@@ -351,8 +357,10 @@ try {
         $stats['pesanan_aktif'] = (int) $kpiRow['pesanan_aktif'];
     }
 
+    ensureBijiKopiHargaPerKgColumn($pdo);
+
     $beans = $pdo->query(
-        'SELECT id, nama_kopi, origin, proses, tasting_notes, stok_gram, harga, gambar_url
+        'SELECT id, nama_kopi, origin, proses, tasting_notes, stok_gram, harga, harga_per_kg, gambar_url
          FROM biji_kopi
          ORDER BY id ASC'
     )->fetchAll();
@@ -907,7 +915,7 @@ require __DIR__ . '/partials/head.php';
                     <th class="py-3 px-4">Proses</th>
                     <th class="py-3 px-4">Tasting Notes</th>
                     <th class="py-3 px-4">Stok Gramasi</th>
-                    <th class="py-3 px-4">Harga</th>
+                    <th class="py-3 px-4">Harga (Cup &amp; Beans/kg)</th>
                     <th class="py-3 px-4 text-right">Aksi</th>
                   </tr>
                 </thead>
@@ -925,6 +933,7 @@ require __DIR__ . '/partials/head.php';
                           'tasting_notes' => $bean['tasting_notes'],
                           'stok_gram'     => $bStok,
                           'harga'         => (int) $bean['harga'],
+                          'harga_per_kg'  => (int) ($bean['harga_per_kg'] ?? 250000),
                           'gambar_url'    => $bean['gambar_url'],
                       ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
                     ?>
@@ -957,7 +966,8 @@ require __DIR__ . '/partials/head.php';
                         </div>
                       </td>
                       <td class="py-3.5 px-4 text-sm font-semibold text-espresso tabular-nums">
-                        <?= e(formatRupiah((int) $bean['harga'])) ?>
+                        <span class="block"><?= e(formatRupiah((int) $bean['harga'])) ?> <span class="text-[11px] font-normal text-muted">/ cup</span></span>
+                        <span class="block text-xs font-medium text-muted"><?= e(formatRupiah((int) ($bean['harga_per_kg'] ?? 250000))) ?> / kg beans</span>
                       </td>
                       <td class="py-3.5 px-4 text-right">
                         <div class="inline-flex items-center gap-1.5">
@@ -1275,7 +1285,7 @@ require __DIR__ . '/partials/head.php';
           </div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div class="space-y-1">
             <label class="block text-xs font-semibold text-espresso">Proses *</label>
             <select id="bean-proses" name="proses" required class="w-full h-10 px-3 rounded bg-white border border-sand text-sm">
@@ -1289,8 +1299,12 @@ require __DIR__ . '/partials/head.php';
             <input id="bean-stok" name="stok_gram" type="number" min="0" required value="500" class="w-full h-10 px-3 rounded bg-white border border-sand text-sm" />
           </div>
           <div class="space-y-1">
-            <label class="block text-xs font-semibold text-espresso">Harga Jual (Rp) *</label>
-            <input id="bean-harga" name="harga" type="number" min="0" step="500" required value="45000" class="w-full h-10 px-3 rounded bg-white border border-sand text-sm" />
+            <label class="block text-xs font-semibold text-espresso">Harga Kopi Seduh / Cup (Rp) *</label>
+            <input id="bean-harga" name="harga" type="number" min="0" step="500" required value="22000" class="w-full h-10 px-3 rounded bg-white border border-sand text-sm" />
+          </div>
+          <div class="space-y-1">
+            <label class="block text-xs font-semibold text-espresso">Harga Beans / kg (Rp) *</label>
+            <input id="bean-harga-kg" name="harga_per_kg" type="number" min="0" step="5000" required value="280000" class="w-full h-10 px-3 rounded bg-white border border-sand text-sm" />
           </div>
         </div>
 
@@ -1437,7 +1451,7 @@ require __DIR__ . '/partials/head.php';
           <select name="biji_kopi_id" required class="w-full h-10 px-3 rounded bg-white border border-sand text-sm">
             <?php foreach ($beans as $b): ?>
               <option value="<?= (int) $b['id'] ?>">
-                <?= e($b['nama_kopi']) ?> — <?= e(formatRupiah((int) $b['harga'])) ?> (Stok <?= (int) $b['stok_gram'] ?>g)
+                <?= e($b['nama_kopi']) ?> — Cup <?= e(formatRupiah((int) $b['harga'])) ?> • Beans <?= e(formatRupiah((int) ($b['harga_per_kg'] ?? 250000))) ?>/kg (Stok <?= (int) $b['stok_gram'] ?>g)
               </option>
             <?php endforeach; ?>
           </select>
@@ -1518,7 +1532,8 @@ require __DIR__ . '/partials/head.php';
         document.getElementById('bean-origin').value = bean.origin || '';
         document.getElementById('bean-proses').value = bean.proses || 'Washed';
         document.getElementById('bean-stok').value = bean.stok_gram ?? 0;
-        document.getElementById('bean-harga').value = bean.harga ?? 0;
+        document.getElementById('bean-harga').value = bean.harga ?? 22000;
+        document.getElementById('bean-harga-kg').value = bean.harga_per_kg ?? 250000;
         document.getElementById('bean-notes').value = bean.tasting_notes || '';
         document.getElementById('bean-gambar').value = bean.gambar_url || '';
       } else {
@@ -1529,7 +1544,8 @@ require __DIR__ . '/partials/head.php';
         document.getElementById('bean-origin').value = '';
         document.getElementById('bean-proses').value = 'Washed';
         document.getElementById('bean-stok').value = '500';
-        document.getElementById('bean-harga').value = '45000';
+        document.getElementById('bean-harga').value = '22000';
+        document.getElementById('bean-harga-kg').value = '280000';
         document.getElementById('bean-notes').value = '';
         document.getElementById('bean-gambar').value = '';
       }

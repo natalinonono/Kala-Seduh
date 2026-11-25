@@ -92,6 +92,7 @@ if (mb_strlen($catatan) > 300) {
 
 try {
     $pdo = getDbConnection();
+    ensureBijiKopiHargaPerKgColumn($pdo);
     ensureMetodeSeduhStockColumn($pdo);
     $pdo->beginTransaction();
 

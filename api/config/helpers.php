@@ -432,10 +432,10 @@ function syncExtraDefaultMethods(PDO $pdo, array $methods): array
     if ($existingNames === ['AeroPress', 'Kalita Wave', 'Syphon', 'V60']) {
         $pdo->exec(
             "INSERT INTO metode_seduh (nama_metode, rasio_kopi_gram, estimasi_menit, biaya_tambahan, stok_porsi) VALUES
-            ('French Press', 18, 4, 2000, NULL),
-            ('Cold Brew', 20, 2, 5000, 8),
-            ('Americano', 18, 3, 2000, NULL),
-            ('Latte', 18, 4, 8000, NULL)
+            ('French Press', 18, 4, 1000, NULL),
+            ('Cold Brew', 20, 2, 3000, 8),
+            ('Americano', 18, 3, 0, NULL),
+            ('Latte', 18, 4, 4000, NULL)
             ON CONFLICT (nama_metode) DO NOTHING"
         );
         return $pdo->query(
@@ -446,4 +446,79 @@ function syncExtraDefaultMethods(PDO $pdo, array $methods): array
     }
 
     return $methods;
+}
+
+/**
+ * Memastikan kolom harga_per_kg tersedia di tabel biji_kopi (untuk membedakan
+ * harga biji kopi per kg dan harga seduhan per cangkir), sekaligus menyesuaikan
+ * data seed lama agar tarif seduhan & tambahan teknik lebih realistis.
+ */
+function ensureBijiKopiHargaPerKgColumn(PDO $pdo): void
+{
+    static $checked = false;
+    if ($checked) {
+        return;
+    }
+
+    $exists = (int) $pdo->query(
+        "SELECT COUNT(*)
+         FROM information_schema.columns
+         WHERE table_schema = current_schema()
+           AND table_name = 'biji_kopi'
+           AND column_name = 'harga_per_kg'"
+    )->fetchColumn();
+
+    if ($exists === 0) {
+        $pdo->exec(
+            'ALTER TABLE biji_kopi
+             ADD COLUMN IF NOT EXISTS harga_per_kg INTEGER NOT NULL DEFAULT 250000
+             CHECK (harga_per_kg >= 0)'
+        );
+
+        $seedBeanPricing = [
+            ['Aceh Gayo Pantan Musara',       45000, 22000, 320000],
+            ['Flores Bajawa Ngura',           38000, 18000, 240000],
+            ['Ethiopia Yirgacheffe Chelchele', 55000, 26000, 420000],
+            ['Java Preanger Gunung Halu',     42000, 20000, 280000],
+            ['Toraja Sapan Minanga',          40000, 19000, 260000],
+            ['Kenya Nyeri Kiandu AA',         60000, 28000, 460000],
+        ];
+        $stmtBean = $pdo->prepare(
+            'UPDATE biji_kopi
+             SET harga = :new_harga, harga_per_kg = :harga_kg
+             WHERE nama_kopi = :nama AND harga = :old_harga'
+        );
+        foreach ($seedBeanPricing as [$nama, $oldHarga, $newHarga, $hargaKg]) {
+            $stmtBean->execute([
+                ':new_harga' => $newHarga,
+                ':harga_kg'  => $hargaKg,
+                ':nama'      => $nama,
+                ':old_harga' => $oldHarga,
+            ]);
+        }
+
+        $seedMethodFees = [
+            ['Kalita Wave',  2000,  1000],
+            ['AeroPress',    3000,  2000],
+            ['Syphon',       10000, 5000],
+            ['French Press', 2000,  1000],
+            ['Cold Brew',    5000,  3000],
+            ['Americano',    2000,  0],
+            ['Latte',        8000,  4000],
+        ];
+        $stmtMethod = $pdo->prepare(
+            'UPDATE metode_seduh
+             SET biaya_tambahan = :new_fee
+             WHERE nama_metode = :nama AND biaya_tambahan = :old_fee'
+        );
+        foreach ($seedMethodFees as [$namaMetode, $oldFee, $newFee]) {
+            $stmtMethod->execute([
+                ':new_fee' => $newFee,
+                ':nama'    => $namaMetode,
+                ':old_fee' => $oldFee,
+            ]);
+        }
+    }
+
+    $checked = true;
 }
