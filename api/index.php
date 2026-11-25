@@ -150,9 +150,10 @@ require __DIR__ . '/partials/head.php';
         </div>
       </a>
 
-      <nav class="hidden md:flex items-center gap-8 text-sm font-medium" id="main-nav">
-        <a href="#katalog-biji" class="nav-link text-espresso font-semibold border-b-2 border-terracotta pb-1 transition-colors whitespace-nowrap">Katalog Biji</a>
-        <a href="#antrean-section" class="nav-link text-muted hover:text-espresso border-b-2 border-transparent pb-1 transition-colors whitespace-nowrap">Antrean Seduh Live</a>
+      <nav class="hidden md:flex items-center gap-7 text-sm font-medium" id="main-nav">
+        <a href="#katalog-biji" class="nav-link text-espresso font-semibold border-b-2 border-terracotta pb-1 transition-colors whitespace-nowrap">Katalog Beans</a>
+        <a href="#teknik-seduh" class="nav-link text-muted hover:text-espresso border-b-2 border-transparent pb-1 transition-colors whitespace-nowrap">Teknik Seduh</a>
+        <a href="#antrean-section" class="nav-link text-muted hover:text-espresso border-b-2 border-transparent pb-1 transition-colors whitespace-nowrap">Antrean Live</a>
         <a href="#filosofi-section" class="nav-link text-muted hover:text-espresso border-b-2 border-transparent pb-1 transition-colors whitespace-nowrap">Filosofi Rasa</a>
       </nav>
 
@@ -163,7 +164,7 @@ require __DIR__ . '/partials/head.php';
           class="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded bg-terracotta hover:bg-terracotta-dark text-white text-xs font-semibold uppercase tracking-wider transition-colors shadow-sm whitespace-nowrap"
         >
           <span class="material-symbols-outlined text-[16px]">local_cafe</span>
-          <span>Pesan Seduh</span>
+          <span>Seduh Sekarang</span>
         </button>
 
         <?php if ($currentUser !== null): ?>
@@ -183,12 +184,13 @@ require __DIR__ . '/partials/head.php';
     <!-- Navigasi Ringkas Mobile -->
     <div class="md:hidden border-t border-sand/80 bg-surface-low/90 px-4 py-2 flex items-center justify-between gap-2 overflow-x-auto text-xs font-semibold">
       <div class="flex items-center gap-4 whitespace-nowrap">
-        <a href="#katalog-biji" class="text-espresso">Katalog Biji</a>
+        <a href="#katalog-biji" class="text-espresso">Katalog Beans</a>
+        <a href="#teknik-seduh" class="text-muted hover:text-espresso">Teknik Seduh</a>
         <a href="#antrean-section" class="text-muted hover:text-espresso">Antrean Live</a>
-        <a href="#filosofi-section" class="text-muted hover:text-espresso">Filosofi Rasa</a>
+        <a href="#filosofi-section" class="text-muted hover:text-espresso">Filosofi</a>
       </div>
       <button type="button" onclick="openOrderDrawer()" class="sm:hidden shrink-0 px-3 py-1 rounded bg-terracotta text-white text-[11px] font-semibold">
-        Pesan Seduh
+        Seduh
       </button>
     </div>
   </header>
@@ -325,12 +327,22 @@ require __DIR__ . '/partials/head.php';
                   <h2 class="font-editorial text-3xl font-medium text-white">
                     <?= e($featuredBean['nama_kopi']) ?>
                   </h2>
-                  <div class="flex flex-wrap items-center gap-1.5 pt-1">
-                    <?php foreach (array_filter(array_map('trim', explode(',', (string) $featuredBean['tasting_notes']))) as $note): ?>
-                      <span class="text-xs px-2.5 py-0.5 rounded-full bg-white/15 backdrop-blur-sm text-cream border border-white/20">
-                        <?= e($note) ?>
-                      </span>
-                    <?php endforeach; ?>
+                  <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+                    <div class="flex flex-wrap items-center gap-1.5">
+                      <?php foreach (array_filter(array_map('trim', explode(',', (string) $featuredBean['tasting_notes']))) as $note): ?>
+                        <span class="text-xs px-2.5 py-0.5 rounded-full bg-white/15 backdrop-blur-sm text-cream border border-white/20">
+                          <?= e($note) ?>
+                        </span>
+                      <?php endforeach; ?>
+                    </div>
+                    <button
+                      type="button"
+                      onclick="openOrderDrawer(<?= (int) $featuredBean['id'] ?>)"
+                      class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-terracotta hover:bg-terracotta-dark text-white text-xs font-semibold transition-colors shadow-sm"
+                    >
+                      <span>Pilih Beans Ini</span>
+                      <span class="material-symbols-outlined text-[15px]">arrow_forward</span>
+                    </button>
                   </div>
                 <?php else: ?>
                   <h2 class="font-editorial text-3xl font-medium text-white">Kala Seduh Slow Bar</h2>
@@ -380,15 +392,12 @@ require __DIR__ . '/partials/head.php';
                 <p class="text-xs text-muted italic py-4 text-center">Belum ada pesanan menunggu.</p>
               <?php else: ?>
                 <?php foreach ($groupedQueue['Menunggu'] as $ord): ?>
-                  <div class="bg-white border border-sand rounded p-3 space-y-1.5">
+                  <div class="bg-white border border-sand rounded p-3 space-y-1">
                     <div class="flex items-center justify-between gap-2">
                       <span class="text-xs font-bold text-espresso tabular-nums"><?= e($ord['kode_pesanan']) ?> • <?= e(formatJamSingkat((string) $ord['created_at'])) ?></span>
                       <span class="text-[11px] px-2 py-0.5 rounded bg-surface-mid text-muted font-semibold"><?= e($ord['nama_metode']) ?></span>
                     </div>
                     <p class="text-sm font-semibold text-espresso"><?= e($ord['nama_kopi']) ?></p>
-                    <?php if ($ord['nama_pelanggan'] !== 'Tamu Slow Bar'): ?>
-                      <p class="text-xs text-muted"><?= e($ord['nama_pelanggan']) ?> • <?= e($ord['nomor_meja']) ?></p>
-                    <?php endif; ?>
                   </div>
                 <?php endforeach; ?>
               <?php endif; ?>
@@ -409,16 +418,13 @@ require __DIR__ . '/partials/head.php';
                 <p class="text-xs text-muted italic py-4 text-center">Barista siap menyeduh pesanan berikutnya.</p>
               <?php else: ?>
                 <?php foreach ($groupedQueue['Sedang Diseduh'] as $ord): ?>
-                  <div class="bg-terracotta-soft/70 border border-[#F3D1C4] rounded p-3 space-y-1.5">
+                  <div class="bg-terracotta-soft/70 border border-[#F3D1C4] rounded p-3 space-y-1">
                     <div class="flex items-center justify-between gap-2">
                       <span class="text-xs font-bold text-[#8F3F27] tabular-nums"><?= e($ord['kode_pesanan']) ?> • <?= e(formatJamSingkat((string) $ord['created_at'])) ?></span>
                       <span class="text-[11px] px-2 py-0.5 rounded bg-terracotta text-white font-semibold"><?= e($ord['nama_metode']) ?></span>
                     </div>
                     <p class="text-sm font-semibold text-espresso"><?= e($ord['nama_kopi']) ?></p>
-                    <div class="flex items-center justify-between text-xs text-[#772F18]">
-                      <span><?= $ord['nama_pelanggan'] !== 'Tamu Slow Bar' ? e($ord['nama_pelanggan']) : 'Sedang diracik barista' ?></span>
-                      <span>Est. ~<?= (int) $ord['estimasi_menit'] ?> menit</span>
-                    </div>
+                    <p class="text-xs text-[#772F18]">Sedang diracik barista • Est. ~<?= (int) $ord['estimasi_menit'] ?> menit</p>
                   </div>
                 <?php endforeach; ?>
               <?php endif; ?>
@@ -439,15 +445,12 @@ require __DIR__ . '/partials/head.php';
                 <p class="text-xs text-muted italic py-4 text-center">Belum ada pesanan selesai hari ini.</p>
               <?php else: ?>
                 <?php foreach ($groupedQueue['Selesai'] as $ord): ?>
-                  <div class="bg-sage-soft/70 border border-[#C2D6CD] rounded p-3 space-y-1.5">
+                  <div class="bg-sage-soft/70 border border-[#C2D6CD] rounded p-3 space-y-1">
                     <div class="flex items-center justify-between gap-2">
                       <span class="text-xs font-bold text-espresso tabular-nums"><?= e($ord['kode_pesanan']) ?> • <?= e(formatJamSingkat((string) $ord['created_at'])) ?></span>
                       <span class="text-[11px] px-2 py-0.5 rounded-full bg-white text-sage-text border border-[#C2D6CD] font-semibold">Siap Disajikan</span>
                     </div>
                     <p class="text-sm font-medium text-espresso"><?= e($ord['nama_kopi']) ?> • <?= e($ord['nama_metode']) ?></p>
-                    <?php if ($ord['nama_pelanggan'] !== 'Tamu Slow Bar'): ?>
-                      <p class="text-xs text-muted"><?= e($ord['nama_pelanggan']) ?> • <?= e($ord['nomor_meja']) ?></p>
-                    <?php endif; ?>
                   </div>
                 <?php endforeach; ?>
               <?php endif; ?>
@@ -461,10 +464,10 @@ require __DIR__ . '/partials/head.php';
         <div class="space-y-4">
           <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div class="space-y-1.5">
-              <span class="text-[11px] font-bold uppercase tracking-[0.18em] text-terracotta block">Katalog Biji Terpilih</span>
-              <h2 class="font-editorial text-3xl sm:text-4xl text-espresso font-medium leading-tight">Pilihan Kurasi Slow Bar</h2>
+              <span class="text-[11px] font-bold uppercase tracking-[0.18em] text-terracotta block">Langkah 1 • Katalog Beans</span>
+              <h2 class="font-editorial text-3xl sm:text-4xl text-espresso font-medium leading-tight">Pilih Beans Favorit Anda</h2>
               <p class="text-sm text-muted max-w-2xl">
-                Setiap pesanan memotong stok gramasi secara real-time sesuai rasio alat seduh yang Anda pilih.
+                Pilih biji single origin yang tersedia, lalu tentukan teknik penyeduhan manual yang diinginkan.
               </p>
             </div>
 
@@ -606,7 +609,58 @@ require __DIR__ . '/partials/head.php';
         <?php endif; ?>
       </section>
 
-      <!-- Section 4: Filosofi Slow Bar -->
+      <!-- Section 4: Teknik Penyeduhan Tersedia -->
+      <section id="teknik-seduh" class="scroll-mt-28 space-y-6">
+        <div class="space-y-1.5">
+          <span class="text-[11px] font-bold uppercase tracking-[0.18em] text-terracotta block">Langkah 2 • Metode Ekstraksi</span>
+          <h2 class="font-editorial text-3xl sm:text-4xl text-espresso font-medium leading-tight">Pilih Teknik Penyeduhan</h2>
+          <p class="text-sm text-muted max-w-2xl">
+            Setiap alat seduh memiliki takaran gramasi, waktu ekstraksi, dan karakter rasa yang berbeda.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <?php foreach ($methods as $m): ?>
+            <div class="bg-paper border border-sand rounded-xl p-5 flex flex-col justify-between space-y-4 hover:border-[#C9BFB0] hover:shadow-ambient transition-all">
+              <div class="space-y-3">
+                <div class="flex items-start justify-between">
+                  <div>
+                    <span class="text-[10px] font-bold uppercase tracking-widest text-terracotta">Manual Brew</span>
+                    <h3 class="font-editorial text-2xl font-medium text-espresso"><?= e($m['nama_metode']) ?></h3>
+                  </div>
+                  <div class="w-9 h-9 rounded-full bg-surface-high flex items-center justify-center text-espresso">
+                    <span class="material-symbols-outlined text-[18px]">local_cafe</span>
+                  </div>
+                </div>
+                <div class="bg-surface-low border border-sand/80 rounded-lg p-3 space-y-1.5 text-xs text-muted">
+                  <div class="flex justify-between">
+                    <span>Takaran Beans:</span>
+                    <strong class="text-espresso tabular-nums"><?= (int) $m['rasio_kopi_gram'] ?>g</strong>
+                  </div>
+                  <div class="flex justify-between">
+                    <span>Estimasi Waktu:</span>
+                    <strong class="text-espresso tabular-nums">~<?= (int) $m['estimasi_menit'] ?> menit</strong>
+                  </div>
+                  <div class="flex justify-between">
+                    <span>Biaya Tambahan:</span>
+                    <strong class="text-espresso tabular-nums"><?= (int) $m['biaya_tambahan'] > 0 ? '+' . e(formatRupiah((int) $m['biaya_tambahan'])) : 'Termasuk' ?></strong>
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onclick="openOrderDrawer(null, <?= (int) $m['id'] ?>)"
+                class="w-full py-2.5 rounded-lg bg-surface-high hover:bg-espresso text-espresso hover:text-cream text-xs font-semibold transition-colors flex items-center justify-center gap-1.5"
+              >
+                <span>Gunakan <?= e($m['nama_metode']) ?></span>
+                <span class="material-symbols-outlined text-[15px]">arrow_forward</span>
+              </button>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      </section>
+
+      <!-- Section 5: Filosofi Slow Bar -->
       <section id="filosofi-section" class="scroll-mt-28 bg-paper border border-sand rounded-xl p-6 lg:p-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
         <div class="lg:col-span-4 space-y-2">
           <span class="text-[11px] uppercase tracking-[0.18em] text-terracotta font-bold">Etiket Menikmati Seduhan</span>
@@ -823,7 +877,7 @@ require __DIR__ . '/partials/head.php';
       }
     }
 
-    function openOrderDrawer(beanId) {
+    function openOrderDrawer(beanId, methodId) {
       const select = document.getElementById('order-bean-select');
       if (select) {
         if (beanId) {
@@ -833,6 +887,12 @@ require __DIR__ . '/partials/head.php';
           if (available) {
             select.value = String(available.id);
           }
+        }
+      }
+      if (methodId) {
+        const methodRadio = document.querySelector(`input[name="metode_seduh_id"][value="${methodId}"]`);
+        if (methodRadio) {
+          methodRadio.checked = true;
         }
       }
       const errBanner = document.getElementById('order-error-banner');
@@ -1049,13 +1109,12 @@ require __DIR__ . '/partials/head.php';
         colMenunggu.innerHTML = waiting.length === 0
           ? '<p class="text-xs text-muted italic py-4 text-center">Belum ada pesanan menunggu.</p>'
           : waiting.map((o) => `
-            <div class="bg-white border border-sand rounded p-3 space-y-1.5">
+            <div class="bg-white border border-sand rounded p-3 space-y-1">
               <div class="flex items-center justify-between gap-2">
                 <span class="text-xs font-bold text-espresso tabular-nums">${escapeHtml(o.kode_pesanan)} • ${escapeHtml(o.jam_wib)}</span>
                 <span class="text-[11px] px-2 py-0.5 rounded bg-surface-mid text-muted font-semibold">${escapeHtml(o.nama_metode)}</span>
               </div>
               <p class="text-sm font-semibold text-espresso">${escapeHtml(o.nama_kopi)}</p>
-              ${o.nama_pelanggan && o.nama_pelanggan !== 'Tamu Slow Bar' ? `<p class="text-xs text-muted">${escapeHtml(o.nama_pelanggan)} • ${escapeHtml(o.nomor_meja)}</p>` : ''}
             </div>
           `).join('');
       }
@@ -1065,16 +1124,13 @@ require __DIR__ . '/partials/head.php';
         colSeduh.innerHTML = brewing.length === 0
           ? '<p class="text-xs text-muted italic py-4 text-center">Barista siap menyeduh pesanan berikutnya.</p>'
           : brewing.map((o) => `
-            <div class="bg-terracotta-soft/70 border border-[#F3D1C4] rounded p-3 space-y-1.5">
+            <div class="bg-terracotta-soft/70 border border-[#F3D1C4] rounded p-3 space-y-1">
               <div class="flex items-center justify-between gap-2">
                 <span class="text-xs font-bold text-[#8F3F27] tabular-nums">${escapeHtml(o.kode_pesanan)} • ${escapeHtml(o.jam_wib)}</span>
                 <span class="text-[11px] px-2 py-0.5 rounded bg-terracotta text-white font-semibold">${escapeHtml(o.nama_metode)}</span>
               </div>
               <p class="text-sm font-semibold text-espresso">${escapeHtml(o.nama_kopi)}</p>
-              <div class="flex items-center justify-between text-xs text-[#772F18]">
-                <span>${o.nama_pelanggan && o.nama_pelanggan !== 'Tamu Slow Bar' ? escapeHtml(o.nama_pelanggan) : 'Sedang diracik barista'}</span>
-                <span>Est. ~${Number(o.estimasi_menit)} menit</span>
-              </div>
+              <p class="text-xs text-[#772F18]">Sedang diracik barista • Est. ~${Number(o.estimasi_menit)} menit</p>
             </div>
           `).join('');
       }
@@ -1084,13 +1140,12 @@ require __DIR__ . '/partials/head.php';
         colSelesai.innerHTML = done.length === 0
           ? '<p class="text-xs text-muted italic py-4 text-center">Belum ada pesanan selesai hari ini.</p>'
           : done.map((o) => `
-            <div class="bg-sage-soft/70 border border-[#C2D6CD] rounded p-3 space-y-1.5">
+            <div class="bg-sage-soft/70 border border-[#C2D6CD] rounded p-3 space-y-1">
               <div class="flex items-center justify-between gap-2">
                 <span class="text-xs font-bold text-espresso tabular-nums">${escapeHtml(o.kode_pesanan)} • ${escapeHtml(o.jam_wib)}</span>
                 <span class="text-[11px] px-2 py-0.5 rounded-full bg-white text-sage-text border border-[#C2D6CD] font-semibold">Siap Disajikan</span>
               </div>
               <p class="text-sm font-medium text-espresso">${escapeHtml(o.nama_kopi)} • ${escapeHtml(o.nama_metode)}</p>
-              ${o.nama_pelanggan && o.nama_pelanggan !== 'Tamu Slow Bar' ? `<p class="text-xs text-muted">${escapeHtml(o.nama_pelanggan)} • ${escapeHtml(o.nomor_meja)}</p>` : ''}
             </div>
           `).join('');
       }

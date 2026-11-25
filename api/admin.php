@@ -679,7 +679,9 @@ require __DIR__ . '/partials/head.php';
                       <div class="flex items-start justify-between gap-2">
                         <div>
                           <span class="text-[11px] font-mono text-muted"><?= e($ord['kode_pesanan']) ?> • <?= e(formatJamSingkat((string) $ord['created_at'])) ?></span>
-                          <h4 class="text-sm font-bold text-espresso"><?= e($ord['nomor_meja']) ?> <span class="font-normal text-muted">(<?= e($ord['nama_pelanggan']) ?>)</span></h4>
+                          <h4 class="text-sm font-bold text-espresso">
+                            <?= $ord['nama_pelanggan'] === 'Tamu Slow Bar' ? 'Pesanan Pengunjung' : e($ord['nomor_meja']) . ' <span class="font-normal text-muted">(' . e($ord['nama_pelanggan']) . ')</span>' ?>
+                          </h4>
                         </div>
                         <span class="px-2 py-0.5 rounded bg-surface-mid text-[11px] font-semibold text-espresso shrink-0">
                           <?= e($ord['nama_metode']) ?> • <?= e($ord['tipe_sajian']) ?>
@@ -734,7 +736,9 @@ require __DIR__ . '/partials/head.php';
                       <div class="flex items-start justify-between gap-2">
                         <div>
                           <span class="text-[11px] font-mono text-terracotta font-bold"><?= e($ord['kode_pesanan']) ?> • Sedang Ekstraksi</span>
-                          <h4 class="text-sm font-bold text-espresso"><?= e($ord['nomor_meja']) ?> <span class="font-normal text-muted">(<?= e($ord['nama_pelanggan']) ?>)</span></h4>
+                          <h4 class="text-sm font-bold text-espresso">
+                            <?= $ord['nama_pelanggan'] === 'Tamu Slow Bar' ? 'Pesanan Pengunjung' : e($ord['nomor_meja']) . ' <span class="font-normal text-muted">(' . e($ord['nama_pelanggan']) . ')</span>' ?>
+                          </h4>
                         </div>
                         <span class="px-2 py-0.5 rounded bg-terracotta-soft text-[11px] font-semibold text-[#8F3F27] shrink-0">
                           <?= e($ord['nama_metode']) ?> • <?= e($ord['tipe_sajian']) ?>
@@ -1331,12 +1335,12 @@ require __DIR__ . '/partials/head.php';
         <input type="hidden" name="from" value="admin" />
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div class="space-y-1">
-            <label class="block text-xs font-semibold text-espresso">Nama Pelanggan *</label>
-            <input name="nama_pelanggan" type="text" required placeholder="Contoh: Bagas" class="w-full h-10 px-3 rounded bg-white border border-sand text-sm" />
+            <label class="block text-xs font-semibold text-espresso">Nama Pelanggan (Opsional)</label>
+            <input name="nama_pelanggan" type="text" placeholder="Default: Tamu Slow Bar" class="w-full h-10 px-3 rounded bg-white border border-sand text-sm" />
           </div>
           <div class="space-y-1">
-            <label class="block text-xs font-semibold text-espresso">Nomor Meja / Bar *</label>
-            <input name="nomor_meja" type="text" required placeholder="Contoh: Bar Seat 02" class="w-full h-10 px-3 rounded bg-white border border-sand text-sm" />
+            <label class="block text-xs font-semibold text-espresso">Nomor Meja / Bar (Opsional)</label>
+            <input name="nomor_meja" type="text" placeholder="Default: Slow Bar" class="w-full h-10 px-3 rounded bg-white border border-sand text-sm" />
           </div>
         </div>
 
