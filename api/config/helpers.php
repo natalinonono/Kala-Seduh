@@ -424,6 +424,116 @@ function getAllProcessProfiles(): array
 }
 
 /**
+ * Menghitung rekomendasi suhu air seduh & penjelasan karakter untuk satu tasting note tertentu.
+ * Memperhitungkan proses pasca-panen (Natural/Anaerobic diekstraksi lebih mudah -> sedikit lebih rendah).
+ *
+ * @return array{rasa: string, kategori: string, suhu: int, rentang: string, penjelasan: string}
+ */
+function resolveSingleNoteBrewTemp(string $note, string $proses = 'Washed'): array
+{
+    $cleanNote = trim($note);
+    $lower = strtolower($cleanNote);
+    $isHighSolubility = in_array(strtolower(trim($proses)), ['natural', 'anaerobic'], true);
+    $offset = $isHighSolubility ? -1 : 0;
+
+    if (preg_match('/citrus|orange|lemon|lime|bergamot|jeruk|grapefruit|blackberry|berry|plum|hibiscus|acidity|asam/', $lower) === 1) {
+        $suhu = 93 + $offset;
+        return [
+            'rasa'       => $cleanNote,
+            'kategori'   => 'Fruity Cerah & Citrus',
+            'suhu'       => $suhu,
+            'rentang'    => ($suhu - 1) . '°C–' . ($suhu + 1) . '°C',
+            'penjelasan' => "Suhu {$suhu}°C memberi energi ekstraksi tinggi untuk mengangkat aroma buah segar & keasaman cerah {$cleanNote}.",
+        ];
+    }
+
+    if (preg_match('/jasmine|floral|bunga|tea|teh|peach|lychee|leci|apricot|apple|pineapple|nanas|tropical|melon/', $lower) === 1) {
+        $suhu = 91 + $offset;
+        return [
+            'rasa'       => $cleanNote,
+            'kategori'   => 'Floral, Teh & Buah Segar',
+            'suhu'       => $suhu,
+            'rentang'    => ($suhu - 1) . '°C–' . ($suhu + 1) . '°C',
+            'penjelasan' => "Suhu {$suhu}°C optimal melarutkan aroma wangi & manis buah halus {$cleanNote} tanpa membuat aftertaste sepat.",
+        ];
+    }
+
+    if (preg_match('/caramel|karamel|brown sugar|palm sugar|cane sugar|gula|sugar|honey|madu|molasses|vanilla|sweet/', $lower) === 1) {
+        $suhu = 89 + $offset;
+        return [
+            'rasa'       => $cleanNote,
+            'kategori'   => 'Manis Alami & Karamel',
+            'suhu'       => $suhu,
+            'rentang'    => ($suhu - 1) . '°C–' . ($suhu + 1) . '°C',
+            'penjelasan' => "Suhu {$suhu}°C menonjolkan rasa manis {$cleanNote} agar terasa bulat di lidah tanpa over-extraction.",
+        ];
+    }
+
+    if (preg_match('/chocolate|choco|cocoa|cokelat|almond|nut|kacang|roasted|cedar|spice|rempah|herbal|cinnamon|kayu|earthy/', $lower) === 1) {
+        $suhu = 88 + $offset;
+        return [
+            'rasa'       => $cleanNote,
+            'kategori'   => 'Body Tebal, Cokelat & Rempah',
+            'suhu'       => $suhu,
+            'rentang'    => ($suhu - 1) . '°C–' . ($suhu + 1) . '°C',
+            'penjelasan' => "Suhu lebih tenang ({$suhu}°C) meredam keasaman sehingga tekstur creamy & rasa hangat {$cleanNote} lebih dominan.",
+        ];
+    }
+
+    $suhu = 90 + $offset;
+    return [
+        'rasa'       => $cleanNote,
+        'kategori'   => 'Karakter Seimbang',
+        'suhu'       => $suhu,
+        'rentang'    => ($suhu - 1) . '°C–' . ($suhu + 1) . '°C',
+        'penjelasan' => "Suhu {$suhu}°C menghasilkan ekstraksi seimbang untuk menonjolkan karakter {$cleanNote}.",
+    ];
+}
+
+/**
+ * Menghasilkan daftar pilihan fokus rasa beserta suhu air seduh yang dianjurkan
+ * berdasarkan kolom tasting_notes & proses pasca-panen biji kopi.
+ *
+ * @return array<int, array{rasa: string, kategori: string, suhu: int, rentang: string, penjelasan: string}>
+ */
+function buildBeanFlavorTargets(string $tastingNotes, string $proses = 'Washed'): array
+{
+    $parts = array_values(array_filter(array_map('trim', explode(',', $tastingNotes))));
+    if (empty($parts)) {
+        $parts = ['Seimbang (Balanced Cup)'];
+    }
+
+    $targets = [];
+    foreach ($parts as $note) {
+        $targets[] = resolveSingleNoteBrewTemp($note, $proses);
+    }
+
+    return $targets;
+}
+
+/**
+ * Memastikan pilihan fokus rasa cocok dengan salah satu tasting note bean terkait,
+ * lalu mengembalikan profil suhu seduhnya.
+ *
+ * @return array{rasa: string, kategori: string, suhu: int, rentang: string, penjelasan: string}
+ */
+function matchBeanFlavorTarget(string $tastingNotes, string $proses, string $requestedFlavor): array
+{
+    $targets = buildBeanFlavorTargets($tastingNotes, $proses);
+    $cleanReq = strtolower(trim($requestedFlavor));
+
+    if ($cleanReq !== '') {
+        foreach ($targets as $t) {
+            if (strtolower($t['rasa']) === $cleanReq) {
+                return $t;
+            }
+        }
+    }
+
+    return $targets[0];
+}
+
+/**
  * Memastikan kolom stok_porsi pada tabel metode_seduh tersedia di database.
  */
 function ensureMetodeSeduhStockColumn(PDO $pdo): void

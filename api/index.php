@@ -143,15 +143,16 @@ foreach ($beans as $b) {
 
 $beansJson = json_encode(
     array_map(static fn(array $b): array => [
-        'id'            => (int) $b['id'],
-        'nama_kopi'     => (string) $b['nama_kopi'],
-        'origin'        => (string) $b['origin'],
-        'proses'        => (string) $b['proses'],
-        'tasting_notes' => (string) $b['tasting_notes'],
-        'stok_gram'     => (int) $b['stok_gram'],
-        'harga'         => (int) $b['harga'],
-        'harga_per_kg'  => (int) ($b['harga_per_kg'] ?? 250000),
-        'gambar_url'    => resolveBeanImageUrl((string) $b['gambar_url']),
+        'id'             => (int) $b['id'],
+        'nama_kopi'      => (string) $b['nama_kopi'],
+        'origin'         => (string) $b['origin'],
+        'proses'         => (string) $b['proses'],
+        'tasting_notes'  => (string) $b['tasting_notes'],
+        'stok_gram'      => (int) $b['stok_gram'],
+        'harga'          => (int) $b['harga'],
+        'harga_per_kg'   => (int) ($b['harga_per_kg'] ?? 250000),
+        'gambar_url'     => resolveBeanImageUrl((string) $b['gambar_url']),
+        'flavor_targets' => buildBeanFlavorTargets((string) $b['tasting_notes'], (string) $b['proses']),
     ], $beans),
     JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE
 );
@@ -440,6 +441,9 @@ require __DIR__ . '/partials/head.php';
                       <span class="text-[11px] px-2 py-0.5 rounded bg-surface-mid text-muted font-semibold"><?= e($ord['nama_metode']) ?></span>
                     </div>
                     <p class="text-sm font-semibold text-espresso"><?= e($ord['nama_kopi']) ?></p>
+                    <?php if (!empty($ord['catatan'])): ?>
+                      <p class="text-[11px] text-[#8F3F27] font-medium"><?= e($ord['catatan']) ?></p>
+                    <?php endif; ?>
                   </div>
                 <?php endforeach; ?>
               <?php endif; ?>
@@ -466,6 +470,9 @@ require __DIR__ . '/partials/head.php';
                       <span class="text-[11px] px-2 py-0.5 rounded bg-terracotta text-white font-semibold"><?= e($ord['nama_metode']) ?></span>
                     </div>
                     <p class="text-sm font-semibold text-espresso"><?= e($ord['nama_kopi']) ?></p>
+                    <?php if (!empty($ord['catatan'])): ?>
+                      <p class="text-[11px] text-[#8F3F27] font-medium"><?= e($ord['catatan']) ?></p>
+                    <?php endif; ?>
                     <p class="text-xs text-[#772F18]">Sedang diracik barista • Est. ~<?= (int) $ord['estimasi_menit'] ?> menit</p>
                   </div>
                 <?php endforeach; ?>
@@ -627,12 +634,25 @@ require __DIR__ . '/partials/head.php';
                         </h3>
                       </div>
 
-                      <div class="flex flex-wrap gap-1.5">
-                        <?php foreach ($notes as $note): ?>
-                          <span class="px-2.5 py-0.5 rounded-full bg-white border border-sand text-xs text-espresso">
-                            <?= e($note) ?>
-                          </span>
-                        <?php endforeach; ?>
+                      <?php $cardFlavorTargets = buildBeanFlavorTargets((string) $bean['tasting_notes'], (string) $bean['proses']); ?>
+                      <div class="space-y-1.5">
+                        <span class="block text-[10px] font-bold uppercase tracking-wider text-muted">
+                          Pilih fokus rasa &amp; suhu seduh:
+                        </span>
+                        <div class="flex flex-wrap gap-1.5">
+                          <?php foreach ($cardFlavorTargets as $ft): ?>
+                            <button
+                              type="button"
+                              <?= $isOut ? 'disabled' : '' ?>
+                              onclick="openOrderDrawer(<?= $beanId ?>, null, <?= e(json_encode($ft['rasa'])) ?>)"
+                              title="<?= e($ft['penjelasan']) ?>"
+                              class="bean-flavor-btn-<?= $beanId ?> px-2.5 py-1 rounded-full bg-white border border-sand text-xs text-espresso transition-colors inline-flex items-center gap-1 <?= $isOut ? 'opacity-60 cursor-not-allowed' : 'hover:border-terracotta hover:bg-terracotta-soft/50' ?>"
+                            >
+                              <span class="font-medium"><?= e($ft['rasa']) ?></span>
+                              <span class="text-[10px] font-bold text-terracotta tabular-nums">• <?= (int) $ft['suhu'] ?>°C</span>
+                            </button>
+                          <?php endforeach; ?>
+                        </div>
                       </div>
                       <?php $cardProcessProfile = getProcessProfile((string) $bean['proses']); ?>
                       <div class="text-[11px] text-muted leading-relaxed space-y-0.5">
@@ -883,10 +903,28 @@ require __DIR__ . '/partials/head.php';
             </div>
           </div>
 
-          <!-- 2. Pilih Teknik Penyeduhan -->
+          <!-- 2. Pilih Fokus Rasa & Rekomendasi Suhu Seduh -->
+          <div class="space-y-2">
+            <span class="block text-xs font-bold uppercase tracking-wider text-espresso">
+              2. Tonjolkan Karakter Rasa &amp; Suhu Seduh
+            </span>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2" id="drawer-flavor-targets"></div>
+            <div id="drawer-temp-insight" class="bg-white border border-sand rounded-xl p-3 flex items-start gap-2.5 text-xs">
+              <div class="px-2.5 py-1.5 rounded-lg bg-terracotta-soft text-[#8F3F27] font-bold text-center shrink-0">
+                <span class="block text-sm leading-none tabular-nums" id="drawer-temp-badge">90°C</span>
+                <span class="block text-[9px] mt-0.5 tabular-nums" id="drawer-temp-range">89°C–91°C</span>
+              </div>
+              <div class="min-w-0 space-y-0.5">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-espresso block" id="drawer-temp-category">-</span>
+                <p class="text-muted leading-snug" id="drawer-temp-desc">-</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. Pilih Teknik Penyeduhan -->
           <div class="space-y-2.5">
             <span class="block text-xs font-bold uppercase tracking-wider text-espresso">
-              2. Pilih Teknik Penyeduhan
+              3. Pilih Teknik Penyeduhan
             </span>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5" id="drawer-methods-grid">
               <?php foreach ($methods as $idx => $m): ?>
@@ -958,6 +996,10 @@ require __DIR__ . '/partials/head.php';
               <span class="font-semibold text-espresso tabular-nums" id="summary-method-fee">Rp 0</span>
             </div>
             <div class="flex justify-between text-muted">
+              <span>Fokus Rasa &amp; Suhu</span>
+              <span class="font-semibold text-terracotta tabular-nums" id="summary-flavor-temp">-</span>
+            </div>
+            <div class="flex justify-between text-muted">
               <span>Takaran / Sisa Stok Beans</span>
               <span class="font-semibold tabular-nums" id="summary-gram-check">-</span>
             </div>
@@ -1017,6 +1059,8 @@ require __DIR__ . '/partials/head.php';
     let activeProsesFilter = 'all';
     let drawerCloseTimer = null;
     let toastTimer = null;
+    let renderedFlavorBeanId = 0;
+    let selectedFlavorTarget = '';
     let isQueuePolling = false;
     let lastQueueSig = '';
     let lastStocksSig = '';
@@ -1095,7 +1139,9 @@ require __DIR__ . '/partials/head.php';
       }
     }
 
-    function openOrderDrawer(beanId, methodId) {
+    function openOrderDrawer(beanId, methodId, flavorName) {
+      selectedFlavorTarget = flavorName ? String(flavorName) : '';
+      renderedFlavorBeanId = 0;
       const select = document.getElementById('order-bean-select');
       const targetMethodObj = methodId ? METHODS_DATA.find((m) => m.id === Number(methodId)) : null;
 
@@ -1189,6 +1235,60 @@ require __DIR__ . '/partials/head.php';
       }, 310);
     }
 
+    function selectFlavorTarget(flavorName) {
+      selectedFlavorTarget = String(flavorName || '');
+      renderedFlavorBeanId = 0;
+      updateOrderCalculator();
+    }
+
+    function syncFlavorTargetsUI(bean) {
+      const container = document.getElementById('drawer-flavor-targets');
+      const badge = document.getElementById('drawer-temp-badge');
+      const range = document.getElementById('drawer-temp-range');
+      const cat = document.getElementById('drawer-temp-category');
+      const desc = document.getElementById('drawer-temp-desc');
+      const sumFlavor = document.getElementById('summary-flavor-temp');
+
+      const targets = Array.isArray(bean?.flavor_targets) && bean.flavor_targets.length > 0
+        ? bean.flavor_targets
+        : [{ rasa: 'Seimbang', kategori: 'Karakter Seimbang', suhu: 90, rentang: '89°C–91°C', penjelasan: 'Suhu 90°C menghasilkan keseimbangan rasa alami.' }];
+
+      let active = targets.find((t) => t.rasa === selectedFlavorTarget);
+      if (!active) {
+        active = targets[0];
+        selectedFlavorTarget = active.rasa;
+      }
+
+      if (container && renderedFlavorBeanId !== bean.id) {
+        renderedFlavorBeanId = bean.id;
+        container.innerHTML = targets.map((t) => {
+          const isActive = t.rasa === active.rasa;
+          return `
+            <button
+              type="button"
+              onclick='selectFlavorTarget(${JSON.stringify(t.rasa)})'
+              class="rounded-xl border p-2.5 text-left transition-all ${
+                isActive
+                  ? 'bg-espresso text-cream border-espresso shadow-sm'
+                  : 'bg-paper text-espresso border-sand hover:border-espresso'
+              }"
+            >
+              <span class="block text-xs font-bold leading-snug truncate">${escapeHtml(t.rasa)}</span>
+              <span class="block text-[11px] mt-0.5 tabular-nums ${isActive ? 'text-[#DAC2B5]' : 'text-terracotta font-semibold'}">
+                Suhu ${Number(t.suhu)}°C
+              </span>
+            </button>
+          `;
+        }).join('');
+      }
+
+      if (badge) badge.textContent = `${Number(active.suhu)}°C`;
+      if (range) range.textContent = active.rentang || '';
+      if (cat) cat.textContent = `${active.rasa} • ${active.kategori}`;
+      if (desc) desc.textContent = active.penjelasan || '';
+      if (sumFlavor) sumFlavor.textContent = `${active.rasa} • ${Number(active.suhu)}°C`;
+    }
+
     function updateOrderCalculator() {
       const beanId = Number(document.getElementById('order-bean-select')?.value || 0);
       const checkedMethod = document.querySelector('input[name="metode_seduh_id"]:checked');
@@ -1213,6 +1313,8 @@ require __DIR__ . '/partials/head.php';
         if (submitBtn) submitBtn.disabled = true;
         return;
       }
+
+      syncFlavorTargetsUI(bean);
 
       if (beanThumb && bean.gambar_url) {
         beanThumb.src = bean.gambar_url;
@@ -1387,6 +1489,12 @@ require __DIR__ . '/partials/head.php';
         option.textContent = `${bean.nama_kopi} — Cup ${formatRupiah(bean.harga)} • Beans ${formatRupiah(bean.harga_per_kg)}/kg (${isOut ? 'Stok Habis' : 'Sisa ' + newStock + 'g'})`;
       }
 
+      document.querySelectorAll(`.bean-flavor-btn-${beanId}`).forEach((fBtn) => {
+        fBtn.disabled = isOut;
+        fBtn.classList.toggle('opacity-60', isOut);
+        fBtn.classList.toggle('cursor-not-allowed', isOut);
+      });
+
       const heroStockEl = document.getElementById('hero-featured-stock');
       if (heroStockEl && Number(heroStockEl.dataset.featuredId) === Number(beanId)) {
         heroStockEl.textContent = isOut
@@ -1431,6 +1539,7 @@ require __DIR__ . '/partials/head.php';
       const payload = {
         biji_kopi_id: Number(form.biji_kopi_id.value),
         metode_seduh_id: Number(form.querySelector('input[name="metode_seduh_id"]:checked')?.value || 0),
+        fokus_rasa: selectedFlavorTarget || '',
       };
 
       try {
@@ -1462,12 +1571,15 @@ require __DIR__ . '/partials/head.php';
         const firstMethod = Array.from(form.querySelectorAll('input[name="metode_seduh_id"]')).find((el) => !el.disabled);
         if (firstMethod) firstMethod.checked = true;
 
+        const flavorNote = data.order.fokus_rasa && data.order.suhu_seduh
+          ? ` • Fokus ${data.order.fokus_rasa} (${data.order.suhu_seduh})`
+          : '';
         const batchNote = data.updated_method_stok !== null && data.updated_method_stok !== undefined
           ? ` • Persediaan ${data.order.nama_metode} sisa ${data.updated_method_stok} porsi`
           : '';
         showToast(
           `Pesanan ${data.order.kode_pesanan} Diterima (${formatRupiah(data.order.total_harga)})`,
-          `${data.order.nama_kopi} (${data.order.nama_metode}) • Sisa beans ${data.updated_stok_gram}g${batchNote}`
+          `${data.order.nama_kopi} (${data.order.nama_metode})${flavorNote} • Sisa beans ${data.updated_stok_gram}g${batchNote}`
         );
         await refreshLiveQueue(false);
       } catch (err) {
@@ -1505,6 +1617,7 @@ require __DIR__ . '/partials/head.php';
                 <span class="text-[11px] px-2 py-0.5 rounded bg-surface-mid text-muted font-semibold">${escapeHtml(o.nama_metode)}</span>
               </div>
               <p class="text-sm font-semibold text-espresso">${escapeHtml(o.nama_kopi)}</p>
+              ${o.catatan ? `<p class="text-[11px] text-[#8F3F27] font-medium">${escapeHtml(o.catatan)}</p>` : ''}
             </div>
           `).join('');
       }
@@ -1520,6 +1633,7 @@ require __DIR__ . '/partials/head.php';
                 <span class="text-[11px] px-2 py-0.5 rounded bg-terracotta text-white font-semibold">${escapeHtml(o.nama_metode)}</span>
               </div>
               <p class="text-sm font-semibold text-espresso">${escapeHtml(o.nama_kopi)}</p>
+              ${o.catatan ? `<p class="text-[11px] text-[#8F3F27] font-medium">${escapeHtml(o.catatan)}</p>` : ''}
               <p class="text-xs text-[#772F18]">Sedang diracik barista • Est. ~${Number(o.estimasi_menit)} menit</p>
             </div>
           `).join('');

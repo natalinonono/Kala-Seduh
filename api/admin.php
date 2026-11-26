@@ -1537,7 +1537,7 @@ require __DIR__ . '/partials/head.php';
 
         <div class="space-y-1">
           <label class="block text-xs font-semibold text-espresso">Pilih Biji Kopi *</label>
-          <select name="biji_kopi_id" required class="w-full h-10 px-3 rounded bg-white border border-sand text-sm">
+          <select id="walkin-bean-select" name="biji_kopi_id" required onchange="syncWalkinFlavorOptions()" class="w-full h-10 px-3 rounded bg-white border border-sand text-sm">
             <?php foreach ($beans as $b): ?>
               <?php $wBeanOut = (int) $b['stok_gram'] <= 0; ?>
               <option value="<?= (int) $b['id'] ?>" <?= $wBeanOut ? 'disabled' : '' ?>>
@@ -1545,6 +1545,11 @@ require __DIR__ . '/partials/head.php';
               </option>
             <?php endforeach; ?>
           </select>
+        </div>
+
+        <div class="space-y-1">
+          <label class="block text-xs font-semibold text-espresso">Tonjolkan Karakter Rasa &amp; Suhu Seduh *</label>
+          <select id="walkin-flavor-select" name="fokus_rasa" class="w-full h-10 px-3 rounded bg-white border border-sand text-sm"></select>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1689,7 +1694,49 @@ require __DIR__ . '/partials/head.php';
       openModal('method-modal');
     }
 
+    const WALKIN_FLAVORS_MAP = <?= json_encode(
+        array_column(
+            array_map(static fn(array $b): array => [
+                'id'      => (int) $b['id'],
+                'targets' => buildBeanFlavorTargets((string) $b['tasting_notes'], (string) $b['proses']),
+            ], $beans),
+            'targets',
+            'id'
+        ),
+        JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE
+    ) ?>;
+
+    function syncWalkinFlavorOptions() {
+      const beanSel = document.getElementById('walkin-bean-select');
+      const flavorSel = document.getElementById('walkin-flavor-select');
+      if (!beanSel || !flavorSel) return;
+
+      const targets = WALKIN_FLAVORS_MAP[Number(beanSel.value)] || [];
+      flavorSel.innerHTML = '';
+      if (targets.length === 0) {
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = 'Seimbang (Suhu 90°C)';
+        flavorSel.appendChild(opt);
+        return;
+      }
+      targets.forEach((t) => {
+        const opt = document.createElement('option');
+        opt.value = t.rasa;
+        opt.textContent = `${t.rasa} — Suhu ${t.suhu}°C (${t.rentang})`;
+        flavorSel.appendChild(opt);
+      });
+    }
+
     function openWalkinModal() {
+      const beanSel = document.getElementById('walkin-bean-select');
+      if (beanSel) {
+        const firstEnabled = Array.from(beanSel.options).find((o) => !o.disabled);
+        if (firstEnabled && beanSel.selectedOptions[0]?.disabled) {
+          beanSel.value = firstEnabled.value;
+        }
+      }
+      syncWalkinFlavorOptions();
       openModal('walkin-modal');
     }
 

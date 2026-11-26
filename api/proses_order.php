@@ -64,6 +64,7 @@ $nomorMeja = trim((string) ($input['nomor_meja'] ?? ''));
 $bijiKopiId = (int) ($input['biji_kopi_id'] ?? 0);
 $metodeSeduhId = (int) ($input['metode_seduh_id'] ?? 0);
 $tipeSajian = trim((string) ($input['tipe_sajian'] ?? 'Hot'));
+$fokusRasa = trim((string) ($input['fokus_rasa'] ?? ''));
 $catatan = trim((string) ($input['catatan'] ?? ''));
 
 if ($namaPelanggan === '') {
@@ -107,7 +108,7 @@ try {
 
     // 1. Kunci baris biji kopi (FOR UPDATE) agar stok aman dari race condition
     $stmtBean = $pdo->prepare(
-        'SELECT id, nama_kopi, origin, proses, stok_gram, harga FROM biji_kopi WHERE id = :id FOR UPDATE'
+        'SELECT id, nama_kopi, origin, proses, tasting_notes, stok_gram, harga FROM biji_kopi WHERE id = :id FOR UPDATE'
     );
     $stmtBean->execute([':id' => $bijiKopiId]);
     $bean = $stmtBean->fetch();
@@ -184,6 +185,17 @@ try {
     }
 
     $totalHarga = (int) $bean['harga'] + (int) $method['biaya_tambahan'];
+    $matchedFlavor = matchBeanFlavorTarget((string) ($bean['tasting_notes'] ?? ''), (string) $bean['proses'], $fokusRasa);
+    $brewNote = sprintf(
+        'Fokus rasa: %s • Suhu seduh: %d°C (%s)',
+        $matchedFlavor['rasa'],
+        $matchedFlavor['suhu'],
+        $matchedFlavor['rentang']
+    );
+    $catatanFinal = $catatan !== '' ? ($brewNote . ' | ' . $catatan) : $brewNote;
+    if (mb_strlen($catatanFinal) > 300) {
+        $catatanFinal = mb_substr($catatanFinal, 0, 300);
+    }
     $tempKode = 'TMP-' . bin2hex(random_bytes(6));
 
     // 4. Simpan pesanan baru dengan status awal "Menunggu"
@@ -203,7 +215,7 @@ try {
         ':biji_id'     => $bijiKopiId,
         ':metode_id'   => $metodeSeduhId,
         ':sajian'      => $tipeSajian,
-        ':catatan'     => $catatan,
+        ':catatan'     => $catatanFinal,
         ':total_harga' => $totalHarga,
         ':status'      => 'Menunggu',
     ]);
@@ -264,7 +276,9 @@ try {
         'rasio_kopi_gram' => $butuhGram,
         'estimasi_menit'  => (int) $method['estimasi_menit'],
         'tipe_sajian'     => $tipeSajian,
-        'catatan'         => $catatan,
+        'fokus_rasa'      => $matchedFlavor['rasa'],
+        'suhu_seduh'      => $matchedFlavor['suhu'] . '°C',
+        'catatan'         => $catatanFinal,
         'total_harga'     => $totalHarga,
         'status'          => 'Menunggu',
         'created_at'      => (string) ($inserted['created_at'] ?? ''),
