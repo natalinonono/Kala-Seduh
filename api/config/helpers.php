@@ -528,12 +528,12 @@ function ensureBijiKopiHargaPerKgColumn(PDO $pdo): void
         );
 
         $seedBeanPricing = [
-            ['Aceh Gayo Pantan Musara',   45000, 22000, 320000],
-            ['Flores Bajawa Ngura',       38000, 18000, 240000],
+            ['Aceh Gayo Pantan Musara',    45000, 22000, 320000],
+            ['Flores Bajawa Wogo',        38000, 18000, 240000],
             ['Bali Kintamani Ulian',      55000, 21000, 290000],
             ['Java Preanger Gunung Halu', 42000, 20000, 280000],
             ['Toraja Sapan Minanga',      40000, 19000, 260000],
-            ['Papua Wamena Kurima',       60000, 24000, 340000],
+            ['Papua Wamena',              60000, 24000, 340000],
         ];
         $stmtBean = $pdo->prepare(
             'UPDATE biji_kopi
@@ -576,8 +576,8 @@ function ensureBijiKopiHargaPerKgColumn(PDO $pdo): void
 }
 
 /**
- * Menyesuaikan seed biji kopi non-Indonesia lama (Ethiopia & Kenya) di database
- * menjadi biji kopi single origin Nusantara (Bali Kintamani Ulian & Papua Wamena Kurima)
+ * Menyesuaikan data seed biji kopi lama agar seluruh katalog memakai nama varian,
+ * origin, ketinggian, dan tasting notes single origin Indonesia yang nyata di dunia nyata,
  * tanpa memutus relasi pesanan historis.
  */
 function syncIndonesianBeansCatalog(PDO $pdo): void
@@ -587,28 +587,90 @@ function syncIndonesianBeansCatalog(PDO $pdo): void
         return;
     }
 
-    $replacements = [
+    $updates = [
         [
-            'old_nama'     => 'Ethiopia Yirgacheffe Chelchele',
-            'nama_kopi'    => 'Bali Kintamani Ulian',
-            'origin'       => 'Bangli, Bali • 1.450 mdpl',
+            'match_nama'   => 'Aceh Gayo Pantan Musara',
+            'match_origin' => 'Aceh Tengah • 1.650 mdpl',
+            'nama_kopi'    => 'Aceh Gayo Pantan Musara',
+            'origin'       => 'Pegasing, Aceh Tengah • 1.650 mdpl',
+            'proses'       => 'Anaerobic',
+            'notes'        => 'Citrus, Lychee, Brown Sugar',
+            'harga'        => 22000,
+            'harga_per_kg' => 320000,
+        ],
+        [
+            'match_nama'   => 'Flores Bajawa Ngura',
+            'match_origin' => null,
+            'nama_kopi'    => 'Flores Bajawa Wogo',
+            'origin'       => 'Golewa, Ngada, NTT • 1.500 mdpl',
             'proses'       => 'Washed',
-            'notes'        => 'Jasmine Blossom, Mandarin Orange, Lemon Zest',
+            'notes'        => 'Milk Chocolate, Caramel, Roasted Almond',
+            'harga'        => 18000,
+            'harga_per_kg' => 240000,
+        ],
+        [
+            'match_nama'   => 'Ethiopia Yirgacheffe Chelchele',
+            'match_origin' => null,
+            'nama_kopi'    => 'Bali Kintamani Ulian',
+            'origin'       => 'Kintamani, Bangli • 1.350 mdpl',
+            'proses'       => 'Washed',
+            'notes'        => 'Orange Citrus, Jasmine, Cane Sugar',
             'harga'        => 21000,
             'harga_per_kg' => 290000,
         ],
         [
-            'old_nama'     => 'Kenya Nyeri Kiandu AA',
-            'nama_kopi'    => 'Papua Wamena Kurima',
-            'origin'       => 'Lembah Baliem, Papua • 1.800 mdpl',
+            'match_nama'   => 'Bali Kintamani Ulian',
+            'match_origin' => 'Bangli, Bali • 1.450 mdpl',
+            'nama_kopi'    => 'Bali Kintamani Ulian',
+            'origin'       => 'Kintamani, Bangli • 1.350 mdpl',
             'proses'       => 'Washed',
-            'notes'        => 'Blackberry, Red Plum, Cane Sugar',
+            'notes'        => 'Orange Citrus, Jasmine, Cane Sugar',
+            'harga'        => 21000,
+            'harga_per_kg' => 290000,
+        ],
+        [
+            'match_nama'   => 'Java Preanger Gunung Halu',
+            'match_origin' => 'Bandung Barat • 1.500 mdpl',
+            'nama_kopi'    => 'Java Preanger Gunung Halu',
+            'origin'       => 'Gunung Halu, Bandung Barat • 1.450 mdpl',
+            'proses'       => 'Honey',
+            'notes'        => 'Peach, Black Tea, Palm Sugar',
+            'harga'        => 20000,
+            'harga_per_kg' => 280000,
+        ],
+        [
+            'match_nama'   => 'Toraja Sapan Minanga',
+            'match_origin' => 'Toraja Utara • 1.700 mdpl',
+            'nama_kopi'    => 'Toraja Sapan Minanga',
+            'origin'       => 'Sapan Minanga, Toraja Utara • 1.700 mdpl',
+            'proses'       => 'Natural',
+            'notes'        => 'Dark Chocolate, Brown Sugar, Cedar Spice',
+            'harga'        => 19000,
+            'harga_per_kg' => 260000,
+        ],
+        [
+            'match_nama'   => 'Kenya Nyeri Kiandu AA',
+            'match_origin' => null,
+            'nama_kopi'    => 'Papua Wamena',
+            'origin'       => 'Lembah Baliem, Jayawijaya • 1.600 mdpl',
+            'proses'       => 'Washed',
+            'notes'        => 'Brown Sugar, Milk Chocolate, Herbal Spice',
+            'harga'        => 24000,
+            'harga_per_kg' => 340000,
+        ],
+        [
+            'match_nama'   => 'Papua Wamena Kurima',
+            'match_origin' => null,
+            'nama_kopi'    => 'Papua Wamena',
+            'origin'       => 'Lembah Baliem, Jayawijaya • 1.600 mdpl',
+            'proses'       => 'Washed',
+            'notes'        => 'Brown Sugar, Milk Chocolate, Herbal Spice',
             'harga'        => 24000,
             'harga_per_kg' => 340000,
         ],
     ];
 
-    $stmt = $pdo->prepare(
+    $stmtByName = $pdo->prepare(
         'UPDATE biji_kopi
          SET nama_kopi = :nama,
              origin = :origin,
@@ -616,19 +678,35 @@ function syncIndonesianBeansCatalog(PDO $pdo): void
              tasting_notes = :notes,
              harga = :harga,
              harga_per_kg = :harga_kg
-         WHERE nama_kopi = :old_nama'
+         WHERE nama_kopi = :match_nama'
+    );
+    $stmtByNameOrigin = $pdo->prepare(
+        'UPDATE biji_kopi
+         SET nama_kopi = :nama,
+             origin = :origin,
+             proses = :proses,
+             tasting_notes = :notes,
+             harga = :harga,
+             harga_per_kg = :harga_kg
+         WHERE nama_kopi = :match_nama AND origin = :match_origin'
     );
 
-    foreach ($replacements as $row) {
-        $stmt->execute([
-            ':nama'     => $row['nama_kopi'],
-            ':origin'   => $row['origin'],
-            ':proses'   => $row['proses'],
-            ':notes'    => $row['notes'],
-            ':harga'    => $row['harga'],
-            ':harga_kg' => $row['harga_per_kg'],
-            ':old_nama' => $row['old_nama'],
-        ]);
+    foreach ($updates as $row) {
+        $params = [
+            ':nama'       => $row['nama_kopi'],
+            ':origin'     => $row['origin'],
+            ':proses'     => $row['proses'],
+            ':notes'      => $row['notes'],
+            ':harga'      => $row['harga'],
+            ':harga_kg'   => $row['harga_per_kg'],
+            ':match_nama' => $row['match_nama'],
+        ];
+        if ($row['match_origin'] !== null) {
+            $params[':match_origin'] = $row['match_origin'];
+            $stmtByNameOrigin->execute($params);
+        } else {
+            $stmtByName->execute($params);
+        }
     }
 
     $synced = true;

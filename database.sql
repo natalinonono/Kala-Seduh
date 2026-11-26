@@ -73,23 +73,23 @@ INSERT INTO users (username, password, nama_lengkap, role) VALUES
 ('admin', '$2y$10$i0Wk8C06xur2iTjXja6oxeNXV8nEfCIc9KrARDfis6hhyvz444ZAe', 'Raka Mahendra', 'admin'),
 ('barista', '$2y$10$RGEmsseqrQO.iCdD36GjquJrxZ33J9LnhOTM0lNu3qRigF1qGilzG', 'Arya Pratama', 'barista');
 
--- Katalog Biji Kopi (6 Single Origin Nusantara, harga = tarif per cup seduhan, harga_per_kg = tarif roasted beans per 1 kg)
+-- Katalog Biji Kopi (6 Single Origin Nusantara asli, harga = tarif per cup seduhan, harga_per_kg = tarif roasted beans per 1 kg)
 INSERT INTO biji_kopi (nama_kopi, origin, proses, tasting_notes, stok_gram, harga, harga_per_kg, gambar_url) VALUES
 (
     'Aceh Gayo Pantan Musara',
-    'Aceh Tengah • 1.650 mdpl',
+    'Pegasing, Aceh Tengah • 1.650 mdpl',
     'Anaerobic',
-    'Blackcurrant, Peach Tea, Wild Honey',
+    'Citrus, Lychee, Brown Sugar',
     850,
     22000,
     320000,
     'https://images.unsplash.com/photo-1590093217544-da597729d81a?auto=format&fit=crop&w=900&q=80'
 ),
 (
-    'Flores Bajawa Ngura',
-    'Bajawa, NTT • 1.400 mdpl',
+    'Flores Bajawa Wogo',
+    'Golewa, Ngada, NTT • 1.500 mdpl',
     'Washed',
-    'Milk Chocolate, Caramel Apple, Nutty',
+    'Milk Chocolate, Caramel, Roasted Almond',
     1200,
     18000,
     240000,
@@ -97,9 +97,9 @@ INSERT INTO biji_kopi (nama_kopi, origin, proses, tasting_notes, stok_gram, harg
 ),
 (
     'Bali Kintamani Ulian',
-    'Bangli, Bali • 1.450 mdpl',
+    'Kintamani, Bangli • 1.350 mdpl',
     'Washed',
-    'Jasmine Blossom, Mandarin Orange, Lemon Zest',
+    'Orange Citrus, Jasmine, Cane Sugar',
     420,
     21000,
     290000,
@@ -107,9 +107,9 @@ INSERT INTO biji_kopi (nama_kopi, origin, proses, tasting_notes, stok_gram, harg
 ),
 (
     'Java Preanger Gunung Halu',
-    'Bandung Barat • 1.500 mdpl',
+    'Gunung Halu, Bandung Barat • 1.450 mdpl',
     'Honey',
-    'Ripe Banana, Jackfruit, Brown Sugar',
+    'Peach, Black Tea, Palm Sugar',
     960,
     20000,
     280000,
@@ -117,19 +117,19 @@ INSERT INTO biji_kopi (nama_kopi, origin, proses, tasting_notes, stok_gram, harg
 ),
 (
     'Toraja Sapan Minanga',
-    'Toraja Utara • 1.700 mdpl',
+    'Sapan Minanga, Toraja Utara • 1.700 mdpl',
     'Natural',
-    'Dark Cocoa, Nutmeg Spice, Cedar Wood',
+    'Dark Chocolate, Brown Sugar, Cedar Spice',
     1500,
     19000,
     260000,
     'https://images.unsplash.com/photo-1567613747125-f7ac12360d77?auto=format&fit=crop&w=900&q=80'
 ),
 (
-    'Papua Wamena Kurima',
-    'Lembah Baliem, Papua • 1.800 mdpl',
+    'Papua Wamena',
+    'Lembah Baliem, Jayawijaya • 1.600 mdpl',
     'Washed',
-    'Blackberry, Red Plum, Cane Sugar',
+    'Brown Sugar, Milk Chocolate, Herbal Spice',
     75,
     24000,
     340000,
