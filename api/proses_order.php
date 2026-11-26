@@ -96,7 +96,7 @@ try {
     try {
         syncIndonesianBeansCatalog($pdo);
     } catch (PDOException $schemaEx) {
-        if ($schemaEx->getCode() === '42703') {
+        if (isSqlState($schemaEx, '42703')) {
             ensureBijiKopiHargaPerKgColumn($pdo);
             ensureMetodeSeduhStockColumn($pdo);
             syncIndonesianBeansCatalog($pdo);
@@ -129,7 +129,7 @@ try {
         $stmtMethod->execute([':id' => $metodeSeduhId]);
         $method = $stmtMethod->fetch();
     } catch (PDOException $schemaEx) {
-        if ($schemaEx->getCode() === '42703') {
+        if (isSqlState($schemaEx, '42703')) {
             $pdo->rollBack();
             ensureMetodeSeduhStockColumn($pdo);
             $pdo->beginTransaction();

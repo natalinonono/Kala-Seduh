@@ -27,7 +27,7 @@ try {
              ORDER BY CASE WHEN stok_gram > 0 THEN 0 ELSE 1 END, id ASC'
         )->fetchAll();
     } catch (PDOException $e) {
-        if ($e->getCode() === '42703') {
+        if (isSqlState($e, '42703')) {
             ensureBijiKopiHargaPerKgColumn($pdo);
             $beans = $pdo->query(
                 'SELECT id, nama_kopi, origin, proses, tasting_notes, stok_gram, harga, harga_per_kg, gambar_url
@@ -51,7 +51,7 @@ try {
              ORDER BY id ASC'
         )->fetchAll();
     } catch (PDOException $e) {
-        if ($e->getCode() === '42703') {
+        if (isSqlState($e, '42703')) {
             ensureMetodeSeduhStockColumn($pdo);
             $methods = $pdo->query(
                 'SELECT id, nama_metode, rasio_kopi_gram, estimasi_menit, biaya_tambahan, stok_porsi

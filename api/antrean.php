@@ -70,7 +70,7 @@ try {
         );
         $methodStockRows = $stmtMethodStocks->fetchAll();
     } catch (PDOException $e) {
-        if ($e->getCode() === '42703') {
+        if (isSqlState($e, '42703')) {
             ensureMetodeSeduhStockColumn($pdo);
             $methodStockRows = $pdo->query(
                 "SELECT id, stok_porsi

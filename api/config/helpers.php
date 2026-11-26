@@ -85,6 +85,22 @@ function e(mixed $value): string
 }
 
 /**
+ * Memeriksa kode SQLSTATE pada exception PDO secara aman untuk runtime maupun
+ * static analyzer (Throwable::getCode() bertipe int|string).
+ */
+function isSqlState(Throwable $e, string $state): bool
+{
+    if ((string) $e->getCode() === $state) {
+        return true;
+    }
+
+    return $e instanceof PDOException
+        && is_array($e->errorInfo)
+        && isset($e->errorInfo[0])
+        && (string) $e->errorInfo[0] === $state;
+}
+
+/**
  * Format angka menjadi Rupiah (contoh: Rp 45.000).
  */
 function formatRupiah(int|float|string $amount): string

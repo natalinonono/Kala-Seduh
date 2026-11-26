@@ -121,7 +121,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                     );
                     $stmt->execute($beanParams);
                 } catch (PDOException $e) {
-                    if ($e->getCode() === '42703') {
+                    if (isSqlState($e, '42703')) {
                         ensureBijiKopiHargaPerKgColumn($pdo);
                         $stmt->execute($beanParams);
                     } else {
@@ -168,7 +168,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                     );
                     $stmt->execute($editParams);
                 } catch (PDOException $e) {
-                    if ($e->getCode() === '42703') {
+                    if (isSqlState($e, '42703')) {
                         ensureBijiKopiHargaPerKgColumn($pdo);
                         $stmt->execute($editParams);
                     } else {
@@ -219,7 +219,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                         setFlashMessage('error', 'Biji kopi tidak ditemukan.');
                     }
                 } catch (PDOException $fkEx) {
-                    if ($fkEx->getCode() === '23503') {
+                    if (isSqlState($fkEx, '23503')) {
                         setFlashMessage('error', 'Biji kopi tidak dapat dihapus karena sudah memiliki riwayat transaksi. Anda dapat mengubah stoknya menjadi 0 gram.');
                     } else {
                         throw $fkEx;
@@ -251,10 +251,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                     $stmt->bindValue(':stok_porsi', $stokPorsi, $stokPorsi === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
                     $stmt->execute();
                 } catch (PDOException $e) {
-                    if ($e->getCode() === '42703') {
+                    if (isSqlState($e, '42703')) {
                         ensureMetodeSeduhStockColumn($pdo);
                         $stmt->execute();
-                    } elseif ($e->getCode() === '23505') {
+                    } elseif (isSqlState($e, '23505')) {
                         setFlashMessage('error', "Metode seduh \"{$namaMetode}\" sudah terdaftar.");
                         $redirectAdmin('metode');
                     } else {
@@ -291,10 +291,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                     $stmt->bindValue(':stok_porsi', $stokPorsi, $stokPorsi === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
                     $stmt->execute();
                 } catch (PDOException $e) {
-                    if ($e->getCode() === '42703') {
+                    if (isSqlState($e, '42703')) {
                         ensureMetodeSeduhStockColumn($pdo);
                         $stmt->execute();
-                    } elseif ($e->getCode() === '23505') {
+                    } elseif (isSqlState($e, '23505')) {
                         setFlashMessage('error', "Nama metode seduh \"{$namaMetode}\" sudah digunakan.");
                         $redirectAdmin('metode');
                     } else {
@@ -343,7 +343,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                         setFlashMessage('error', 'Metode seduh tidak ditemukan.');
                     }
                 } catch (PDOException $fkEx) {
-                    if ($fkEx->getCode() === '23503') {
+                    if (isSqlState($fkEx, '23503')) {
                         setFlashMessage('error', 'Metode seduh tidak dapat dihapus karena masih digunakan pada riwayat pesanan.');
                     } else {
                         throw $fkEx;
@@ -407,7 +407,7 @@ try {
              ORDER BY id ASC'
         )->fetchAll();
     } catch (PDOException $e) {
-        if ($e->getCode() === '42703') {
+        if (isSqlState($e, '42703')) {
             ensureBijiKopiHargaPerKgColumn($pdo);
             $beans = $pdo->query(
                 'SELECT id, nama_kopi, origin, proses, tasting_notes, stok_gram, harga, harga_per_kg, gambar_url
@@ -435,7 +435,7 @@ try {
              ORDER BY id ASC'
         )->fetchAll();
     } catch (PDOException $e) {
-        if ($e->getCode() === '42703') {
+        if (isSqlState($e, '42703')) {
             ensureMetodeSeduhStockColumn($pdo);
             $methods = $pdo->query(
                 'SELECT id, nama_metode, rasio_kopi_gram, estimasi_menit, biaya_tambahan, stok_porsi
