@@ -109,7 +109,7 @@ try {
         $respondError('Biji kopi yang dipilih tidak ditemukan.', 404);
     }
 
-    // 2. Kunci & ambil parameter metode seduh (termasuk stok_porsi bila terbatas seperti Cold Brew)
+    // 2. Kunci & ambil parameter metode seduh (termasuk stok_porsi bila dibatasi per batch)
     $stmtMethod = $pdo->prepare(
         'SELECT id, nama_metode, rasio_kopi_gram, estimasi_menit, biaya_tambahan, stok_porsi
          FROM metode_seduh
@@ -119,16 +119,16 @@ try {
     $stmtMethod->execute([':id' => $metodeSeduhId]);
     $method = $stmtMethod->fetch();
 
-    if (!$method) {
+    if (!$method || str_contains(strtolower((string) $method['nama_metode']), 'cold brew')) {
         $pdo->rollBack();
-        $respondError('Metode seduh yang dipilih tidak ditemukan.', 404);
+        $respondError('Metode seduh yang dipilih sudah tidak tersedia.', 404);
     }
 
     $stokSekarang = (int) $bean['stok_gram'];
     $butuhGram = (int) $method['rasio_kopi_gram'];
     $methodStokPorsi = $method['stok_porsi'] !== null ? (int) $method['stok_porsi'] : null;
 
-    // 3a. Validasi persediaan teknik penyeduhan terbatas (misalnya Cold Brew)
+    // 3a. Validasi persediaan teknik penyeduhan terbatas per batch
     if ($methodStokPorsi !== null && $methodStokPorsi <= 0) {
         $pdo->rollBack();
         $respondError(
@@ -205,7 +205,7 @@ try {
         $respondError('Gagal memperbarui stok biji kopi. Silakan ulangi pemesanan.', 409);
     }
 
-    // 6. Jika metode seduh memiliki stok persediaan terbatas (contoh: Cold Brew), kurangi 1 porsi
+    // 6. Jika metode seduh memiliki stok persediaan terbatas per batch, kurangi 1 porsi
     $updatedMethodStok = null;
     if ($methodStokPorsi !== null) {
         $stmtDeductMethod = $pdo->prepare(

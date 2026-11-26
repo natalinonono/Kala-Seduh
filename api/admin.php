@@ -383,6 +383,7 @@ try {
          ORDER BY id ASC'
     )->fetchAll();
     $methods = syncExtraDefaultMethods($pdo, $methods);
+    $methods = removeColdBrewMethod($pdo, $methods);
 
     $lowStockMethods = [];
     foreach ($methods as $mRow) {
@@ -1428,7 +1429,7 @@ require __DIR__ . '/partials/head.php';
         <div class="space-y-1">
           <label class="block text-xs font-semibold text-espresso">Persediaan Terbatas / Stok Batch (Porsi)</label>
           <input id="method-stok-porsi" name="stok_porsi" type="number" min="0" placeholder="Kosongkan jika mengikuti stok beans (tanpa batas batch)" class="w-full h-10 px-3 rounded bg-white border border-sand text-sm" />
-          <p class="text-[11px] text-muted">Isi angka (misal 8) khusus untuk teknik batch seperti Cold Brew; kosongkan untuk seduhan fresh.</p>
+          <p class="text-[11px] text-muted">Isi angka bila ingin membatasi jumlah porsi per batch; kosongkan untuk seduhan fresh mengikuti stok gramasi beans.</p>
         </div>
 
         <div class="pt-3 flex items-center justify-end gap-2 border-t border-sand">

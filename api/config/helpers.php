@@ -279,9 +279,6 @@ function resolveMethodImageUrl(string $namaMetode, ?string $dbUrl = null): strin
     if (str_contains($lower, 'french press')) {
         return 'https://images.unsplash.com/photo-1763931413710-cb62218fc4ff?auto=format&fit=crop&w=900&q=80';
     }
-    if (str_contains($lower, 'cold brew')) {
-        return 'https://images.unsplash.com/photo-1537371737569-a050cc10225b?auto=format&fit=crop&w=900&q=80';
-    }
     if (str_contains($lower, 'americano')) {
         return 'https://images.unsplash.com/photo-1558557019-051d86ef616f?auto=format&fit=crop&w=900&q=80';
     }
@@ -344,15 +341,6 @@ function getMethodProfile(string $namaMetode): array
             'badge_class'   => 'bg-terracotta-soft text-[#8F3F27] border-[#F3D1C4]',
             'perbedaan'     => 'Direndam penuh lalu disaring jaring logam (tanpa kertas), sehingga minyak alami kopi ikut terbawa.',
             'pengaruh_rasa' => 'Memengaruhi rasa beans secara nyata: tekstur jauh lebih tebal/oily, nada cokelat & earthy menguat, sedangkan asam buah mereda.',
-        ];
-    }
-    if (str_contains($lower, 'cold brew')) {
-        return [
-            'kategori'      => 'Slow Cold Extraction',
-            'dampak_badge'  => 'Mengubah: Low Acid & Halus',
-            'badge_class'   => 'bg-terracotta-soft text-[#8F3F27] border-[#F3D1C4]',
-            'perbedaan'     => 'Diseduh dengan air dingin selama 12–16 jam tanpa pemanasan sama sekali.',
-            'pengaruh_rasa' => 'Mengubah profil rasa beans drastis: tingkat keasaman turun jauh (ramah lambung) dan rasa manis cokelat-karamel terasa dominan.',
         ];
     }
     if (str_contains($lower, 'americano')) {
@@ -436,8 +424,7 @@ function getAllProcessProfiles(): array
 }
 
 /**
- * Memastikan kolom stok_porsi pada tabel metode_seduh tersedia di database
- * dan memberi stok batch awal (8 porsi) untuk Cold Brew bila baru ditambahkan.
+ * Memastikan kolom stok_porsi pada tabel metode_seduh tersedia di database.
  */
 function ensureMetodeSeduhStockColumn(PDO $pdo): void
 {
@@ -459,18 +446,13 @@ function ensureMetodeSeduhStockColumn(PDO $pdo): void
              ADD COLUMN IF NOT EXISTS stok_porsi INTEGER DEFAULT NULL
              CHECK (stok_porsi IS NULL OR stok_porsi >= 0)'
         );
-        $pdo->exec(
-            "UPDATE metode_seduh
-             SET stok_porsi = 8
-             WHERE LOWER(nama_metode) LIKE '%cold brew%' AND stok_porsi IS NULL"
-        );
     }
 
     $checked = true;
 }
 
 /**
- * Menambahkan opsi teknik penyeduhan lanjutan (French Press, Cold Brew, Americano, Latte)
+ * Menambahkan opsi teknik penyeduhan lanjutan (French Press, Americano, Latte)
  * secara aman apabila database masih berisi 4 metode seed awal saja.
  *
  * @param array<int, array<string, mixed>> $methods
@@ -485,7 +467,6 @@ function syncExtraDefaultMethods(PDO $pdo, array $methods): array
         $pdo->exec(
             "INSERT INTO metode_seduh (nama_metode, rasio_kopi_gram, estimasi_menit, biaya_tambahan, stok_porsi) VALUES
             ('French Press', 18, 4, 1000, NULL),
-            ('Cold Brew', 20, 2, 3000, 8),
             ('Americano', 18, 3, 0, NULL),
             ('Latte', 18, 4, 4000, NULL)
             ON CONFLICT (nama_metode) DO NOTHING"
@@ -498,6 +479,41 @@ function syncExtraDefaultMethods(PDO $pdo, array $methods): array
     }
 
     return $methods;
+}
+
+/**
+ * Menghapus metode Cold Brew dari database bila belum pernah terpakai di tabel pesanan,
+ * serta menyaringnya dari daftar metode aktif agar riwayat pesanan lama tetap aman.
+ *
+ * @param array<int, array<string, mixed>> $methods
+ * @return array<int, array<string, mixed>>
+ */
+function removeColdBrewMethod(PDO $pdo, array $methods): array
+{
+    $hasColdBrew = false;
+    foreach ($methods as $m) {
+        if (str_contains(strtolower((string) ($m['nama_metode'] ?? '')), 'cold brew')) {
+            $hasColdBrew = true;
+            break;
+        }
+    }
+
+    if (!$hasColdBrew) {
+        return $methods;
+    }
+
+    $pdo->exec(
+        "DELETE FROM metode_seduh
+         WHERE LOWER(nama_metode) LIKE '%cold brew%'
+           AND NOT EXISTS (
+               SELECT 1 FROM pesanan p WHERE p.metode_seduh_id = metode_seduh.id
+           )"
+    );
+
+    return array_values(array_filter(
+        $methods,
+        static fn(array $m): bool => !str_contains(strtolower((string) ($m['nama_metode'] ?? '')), 'cold brew')
+    ));
 }
 
 /**
@@ -554,7 +570,6 @@ function ensureBijiKopiHargaPerKgColumn(PDO $pdo): void
             ['AeroPress',    3000,  2000],
             ['Syphon',       10000, 5000],
             ['French Press', 2000,  1000],
-            ['Cold Brew',    5000,  3000],
             ['Americano',    2000,  0],
             ['Latte',        8000,  4000],
         ];

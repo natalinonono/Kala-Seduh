@@ -34,7 +34,7 @@ CREATE TABLE biji_kopi (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 3. Tabel Master Metode Seduh (stok_porsi NULL = tanpa batas kuota batch, INTEGER = stok terbatas seperti Cold Brew)
+-- 3. Tabel Master Metode Seduh (stok_porsi NULL = tanpa batas kuota batch, INTEGER = stok terbatas per batch)
 CREATE TABLE metode_seduh (
     id SERIAL PRIMARY KEY,
     nama_metode VARCHAR(80) NOT NULL UNIQUE,
@@ -143,7 +143,6 @@ INSERT INTO metode_seduh (nama_metode, rasio_kopi_gram, estimasi_menit, biaya_ta
 ('AeroPress', 18, 3, 2000, NULL),
 ('Syphon', 20, 7, 5000, NULL),
 ('French Press', 18, 4, 1000, NULL),
-('Cold Brew', 20, 2, 3000, 8),
 ('Americano', 18, 3, 0, NULL),
 ('Latte', 18, 4, 4000, NULL);
 

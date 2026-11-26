@@ -36,6 +36,7 @@ try {
          ORDER BY id ASC'
     )->fetchAll();
     $methods = syncExtraDefaultMethods($pdo, $methods);
+    $methods = removeColdBrewMethod($pdo, $methods);
 
     $queueOrders = $pdo->query(
         "SELECT
@@ -677,7 +678,7 @@ require __DIR__ . '/partials/head.php';
             <div class="text-xs sm:text-sm text-muted leading-relaxed">
               <strong class="text-espresso block mb-0.5">Apakah teknik penyeduhan memengaruhi rasa beans?</strong>
               <span>
-                <strong class="text-terracotta">Ya, sangat memengaruhi.</strong> Filter kertas (<em>V60, Kalita, Syphon</em>) menjaga aroma bunga/buah dan rasa asli beans tetap jernih; tanpa filter kertas atau rendaman dingin (<em>French Press, Cold Brew</em>) membuat body lebih tebal dan keasaman turun; sementara berbasis tekanan/susu (<em>Americano, Latte</em>) mengubah profil rasa menjadi lebih bold atau creamy manis.
+                <strong class="text-terracotta">Ya, sangat memengaruhi.</strong> Filter kertas (<em>V60, Kalita, Syphon</em>) menjaga aroma bunga/buah dan rasa asli beans tetap jernih; tanpa filter kertas (<em>French Press</em>) membuat minyak alami kopi terbawa sehingga body lebih tebal dan keasaman terasa lebih halus; sementara berbasis tekanan/susu (<em>Americano, Latte</em>) mengubah profil rasa menjadi lebih bold atau creamy manis.
               </span>
             </div>
           </div>
