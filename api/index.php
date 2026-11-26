@@ -514,6 +514,32 @@ require __DIR__ . '/partials/head.php';
               Menampilkan <?= count($beans) ?> dari <?= count($beans) ?> varian
             </span>
           </div>
+
+          <div id="proses-guide-panel" class="bg-paper border border-sand rounded-xl p-4 space-y-2.5 shadow-sm">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <span class="text-xs font-bold text-espresso flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[16px] text-terracotta">info</span>
+                <span>Apa beda proses <span class="text-terracotta" id="proses-guide-title">Natural, Washed, Honey &amp; Anaerobic</span>?</span>
+              </span>
+              <span class="text-[11px] text-muted" id="proses-guide-subtitle">Metode pasca-panen memengaruhi tingkat manis, keasaman, dan ketebalan rasa beans.</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5" id="proses-guide-grid">
+              <?php foreach (getAllProcessProfiles() as $pName => $pDetail): ?>
+                <button
+                  type="button"
+                  onclick="setProcessFilter('<?= e($pName) ?>')"
+                  data-guide-proses="<?= e($pName) ?>"
+                  class="proses-guide-card text-left p-3 rounded-lg bg-surface-low border border-sand hover:border-espresso/40 transition-all space-y-1"
+                >
+                  <div class="flex items-center justify-between gap-1">
+                    <span class="text-xs font-bold text-espresso"><?= e($pDetail['judul']) ?></span>
+                  </div>
+                  <p class="text-[11px] text-muted leading-snug"><?= e($pDetail['cara_proses']) ?></p>
+                  <p class="text-[11px] text-espresso/85 leading-snug"><strong class="text-terracotta">Rasa:</strong> <?= e($pDetail['karakter_rasa']) ?></p>
+                </button>
+              <?php endforeach; ?>
+            </div>
+          </div>
         </div>
 
         <?php if (empty($beans)): ?>
@@ -588,6 +614,10 @@ require __DIR__ . '/partials/head.php';
                           </span>
                         <?php endforeach; ?>
                       </div>
+                      <?php $cardProcessProfile = getProcessProfile((string) $bean['proses']); ?>
+                      <p class="text-[11px] text-muted leading-relaxed">
+                        <strong class="text-espresso"><?= e($cardProcessProfile['judul']) ?>:</strong> <?= e($cardProcessProfile['karakter_rasa']) ?>
+                      </p>
                     </div>
 
                     <div class="bg-surface-low border border-sand/80 rounded-lg px-3.5 py-2.5 text-xs text-muted flex items-center justify-between">
@@ -831,7 +861,10 @@ require __DIR__ . '/partials/head.php';
             </select>
             <div class="flex items-center gap-3 bg-surface-low border border-sand rounded-lg p-2.5">
               <img id="drawer-bean-thumb" src="" alt="" class="w-12 h-12 rounded object-cover bg-surface-mid shrink-0" />
-              <p class="text-xs text-muted" id="drawer-bean-meta"></p>
+              <div class="min-w-0 space-y-0.5">
+                <p class="text-xs text-muted" id="drawer-bean-meta"></p>
+                <p class="text-[11px] text-espresso/85 leading-snug" id="drawer-bean-process-note"></p>
+              </div>
             </div>
           </div>
 
@@ -963,6 +996,7 @@ require __DIR__ . '/partials/head.php';
   <script>
     const BEANS_DATA = <?= $beansJson ?: '[]' ?>;
     const METHODS_DATA = <?= $methodsJson ?: '[]' ?>;
+    const PROCESS_PROFILES = <?= json_encode(getAllProcessProfiles(), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE) ?>;
     const MIN_RATIO = <?= (int) $minRatio ?>;
     let activeProsesFilter = 'all';
     let drawerCloseTimer = null;
@@ -990,6 +1024,26 @@ require __DIR__ . '/partials/head.php';
           btn.className = 'filter-tab px-3.5 py-1.5 rounded-full bg-surface-low border border-sand hover:bg-surface-high text-espresso text-xs font-semibold transition-colors whitespace-nowrap';
         }
       });
+
+      const guideTitle = document.getElementById('proses-guide-title');
+      const guideSub = document.getElementById('proses-guide-subtitle');
+      if (guideTitle && guideSub) {
+        if (proses === 'all' || !PROCESS_PROFILES[proses]) {
+          guideTitle.textContent = 'Natural, Washed, Honey & Anaerobic';
+          guideSub.textContent = 'Metode pasca-panen memengaruhi tingkat manis, keasaman, dan ketebalan rasa beans.';
+        } else {
+          guideTitle.textContent = PROCESS_PROFILES[proses].judul;
+          guideSub.textContent = PROCESS_PROFILES[proses].cocok_untuk;
+        }
+      }
+
+      document.querySelectorAll('.proses-guide-card').forEach((card) => {
+        const isMatched = proses === 'all' || card.dataset.guideProses === proses;
+        card.classList.toggle('border-terracotta', proses !== 'all' && card.dataset.guideProses === proses);
+        card.classList.toggle('bg-terracotta-soft/40', proses !== 'all' && card.dataset.guideProses === proses);
+        card.classList.toggle('opacity-55', !isMatched);
+      });
+
       applyCatalogFilters();
     }
 
@@ -1106,6 +1160,7 @@ require __DIR__ . '/partials/head.php';
       const method = METHODS_DATA.find((m) => m.id === methodId);
 
       const beanMeta = document.getElementById('drawer-bean-meta');
+      const beanProcessNote = document.getElementById('drawer-bean-process-note');
       const beanThumb = document.getElementById('drawer-bean-thumb');
       const sumBean = document.getElementById('summary-bean-price');
       const sumBeanKg = document.getElementById('summary-bean-kg-price');
@@ -1127,6 +1182,12 @@ require __DIR__ . '/partials/head.php';
       }
       if (beanMeta) {
         beanMeta.textContent = `${bean.origin} • ${bean.proses} • ${bean.tasting_notes} • Beans ${formatRupiah(bean.harga_per_kg)}/kg`;
+      }
+      if (beanProcessNote) {
+        const pInfo = PROCESS_PROFILES[bean.proses];
+        beanProcessNote.textContent = pInfo
+          ? `Proses ${pInfo.judul}: ${pInfo.karakter_rasa}`
+          : '';
       }
 
       const insightCat = document.getElementById('insight-category');

@@ -900,12 +900,22 @@ require __DIR__ . '/partials/head.php';
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h2 class="font-editorial text-2xl text-espresso font-medium">Master Data Biji Kopi &amp; Stok Gramasi</h2>
-              <p class="text-xs text-muted">Tambah varietas baru, perbarui stok gramasi, atau edit harga jual cangkir.</p>
+              <p class="text-xs text-muted">Tambah varietas baru, perbarui stok gramasi, atau edit harga seduh per cup &amp; harga beans per kg.</p>
             </div>
             <button type="button" onclick="openBeanModal(null)" class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-espresso hover:bg-[#3D2C22] text-cream text-xs font-semibold transition-colors shadow-sm self-start">
               <span class="material-symbols-outlined text-[18px]">add_circle</span>
               <span>Tambah Biji Kopi</span>
             </button>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <?php foreach (getAllProcessProfiles() as $pKey => $pDetail): ?>
+              <div class="bg-paper border border-sand rounded-xl p-3.5 space-y-1">
+                <span class="inline-block px-2.5 py-0.5 rounded-full bg-surface-mid text-espresso text-[11px] font-bold"><?= e($pDetail['judul']) ?></span>
+                <p class="text-[11px] text-espresso font-medium leading-snug"><?= e($pDetail['cara_proses']) ?></p>
+                <p class="text-[11px] text-muted leading-snug"><strong class="text-terracotta">Rasa:</strong> <?= e($pDetail['karakter_rasa']) ?></p>
+              </div>
+            <?php endforeach; ?>
           </div>
 
           <div class="bg-paper border border-sand rounded-xl overflow-hidden shadow-sm">
@@ -949,10 +959,14 @@ require __DIR__ . '/partials/head.php';
                           </div>
                         </div>
                       </td>
-                      <td class="py-3.5 px-4">
-                        <span class="px-2.5 py-0.5 rounded-full bg-surface-mid text-espresso text-xs font-semibold">
+                      <td class="py-3.5 px-4 max-w-[235px]">
+                        <?php $beanProcessProfile = getProcessProfile((string) $bean['proses']); ?>
+                        <span class="inline-block px-2.5 py-0.5 rounded-full bg-surface-mid text-espresso text-xs font-semibold">
                           <?= e($bean['proses']) ?>
                         </span>
+                        <p class="text-[11px] text-muted leading-snug mt-1">
+                          <?= e($beanProcessProfile['karakter_rasa']) ?>
+                        </p>
                       </td>
                       <td class="py-3.5 px-4 text-xs text-muted max-w-[220px]">
                         <?= e($bean['tasting_notes']) ?>
@@ -1290,11 +1304,12 @@ require __DIR__ . '/partials/head.php';
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div class="space-y-1">
             <label class="block text-xs font-semibold text-espresso">Proses *</label>
-            <select id="bean-proses" name="proses" required class="w-full h-10 px-3 rounded bg-white border border-sand text-sm">
+            <select id="bean-proses" name="proses" required onchange="updateBeanProcessHint()" class="w-full h-10 px-3 rounded bg-white border border-sand text-sm">
               <?php foreach ($allowedProses as $pr): ?>
                 <option value="<?= e($pr) ?>"><?= e($pr) ?></option>
               <?php endforeach; ?>
             </select>
+            <p id="bean-proses-hint" class="text-[11px] text-muted leading-snug"></p>
           </div>
           <div class="space-y-1">
             <label class="block text-xs font-semibold text-espresso">Stok (Gram) *</label>
@@ -1552,6 +1567,19 @@ require __DIR__ . '/partials/head.php';
         document.getElementById('bean-gambar').value = '';
       }
       openModal('bean-modal');
+      updateBeanProcessHint();
+    }
+
+    const PROCESS_HINTS = <?= json_encode(
+        array_map(static fn(array $p): string => $p['cara_proses'] . ' (' . $p['karakter_rasa'] . ')', getAllProcessProfiles()),
+        JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE
+    ) ?>;
+
+    function updateBeanProcessHint() {
+      const sel = document.getElementById('bean-proses');
+      const hintEl = document.getElementById('bean-proses-hint');
+      if (!sel || !hintEl) return;
+      hintEl.textContent = PROCESS_HINTS[sel.value] || '';
     }
 
     function openRestockModal(id, name, currentGram) {

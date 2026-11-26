@@ -384,6 +384,58 @@ function getMethodProfile(string $namaMetode): array
 }
 
 /**
+ * Mengembalikan daftar dan penjelasan tiap metode proses pasca-panen biji kopi
+ * (Natural, Washed, Honey, Anaerobic) serta pengaruhnya terhadap karakter rasa.
+ *
+ * @return array{judul: string, cara_proses: string, karakter_rasa: string, cocok_untuk: string}
+ */
+function getProcessProfile(string $proses): array
+{
+    $profiles = getAllProcessProfiles();
+    return $profiles[$proses] ?? [
+        'judul'         => $proses,
+        'cara_proses'   => 'Metode pengolahan pasca-panen khusus sebelum biji kopi disangrai.',
+        'karakter_rasa' => 'Membentuk keseimbangan rasa manis, keasaman, dan ketebalan body.',
+        'cocok_untuk'   => 'Beragam metode penyeduhan manual.',
+    ];
+}
+
+/**
+ * Seluruh profil penjelasan proses pasca-panen biji kopi.
+ *
+ * @return array<string, array{judul: string, cara_proses: string, karakter_rasa: string, cocok_untuk: string}>
+ */
+function getAllProcessProfiles(): array
+{
+    return [
+        'Natural' => [
+            'judul'         => 'Natural (Dry Process)',
+            'cara_proses'   => 'Buah ceri kopi dijemur utuh bersama kulit dan daging buahnya hingga kering sebelum dikupas.',
+            'karakter_rasa' => 'Manis buah matang sangat kuat (berry/tropis), body tebal & legit, keasaman lembut.',
+            'cocok_untuk'   => 'Pecinta kopi manis buah & body tebal.',
+        ],
+        'Washed' => [
+            'judul'         => 'Washed (Full Wash)',
+            'cara_proses'   => 'Daging & lendir buah dicuci bersih dengan air terlebih dahulu sebelum biji dikeringkan.',
+            'karakter_rasa' => 'Rasa sangat bersih (clean), jernih, keasaman cerah (citrus/floral), karakter asli daerah paling terasa.',
+            'cocok_untuk'   => 'Pecinta kopi bersih, segar & floral/citrus.',
+        ],
+        'Honey' => [
+            'judul'         => 'Honey Process (Pulped Natural)',
+            'cara_proses'   => 'Kulit luar dikupas, lalu sebagian lapisan lendir manis (mucilage) dibiarkan menempel saat penjemuran.',
+            'karakter_rasa' => 'Seimbang di antara Washed dan Natural: manis karamel/madu lembut dengan keasaman halus.',
+            'cocok_untuk'   => 'Pecinta rasa manis seimbang tanpa terlalu asam atau berat.',
+        ],
+        'Anaerobic' => [
+            'judul'         => 'Anaerobic Fermentation',
+            'cara_proses'   => 'Ceri kopi difermentasi dalam tangki tertutup kedap udara tanpa oksigen pada suhu & waktu terkontrol.',
+            'karakter_rasa' => 'Aroma sangat ekspresif & unik (winey, buah fermentasi, rempah/teh), manis tajam dan kompleks.',
+            'cocok_untuk'   => 'Pecinta eksplorasi aroma unik & rasa intens.',
+        ],
+    ];
+}
+
+/**
  * Memastikan kolom stok_porsi pada tabel metode_seduh tersedia di database
  * dan memberi stok batch awal (8 porsi) untuk Cold Brew bila baru ditambahkan.
  */
