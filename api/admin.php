@@ -63,6 +63,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     try {
         $pdo = getDbConnection();
         ensureBijiKopiHargaPerKgColumn($pdo);
+        syncIndonesianBeansCatalog($pdo);
 
         switch ($action) {
             case 'update_status':
@@ -358,6 +359,7 @@ try {
     }
 
     ensureBijiKopiHargaPerKgColumn($pdo);
+    syncIndonesianBeansCatalog($pdo);
 
     $beans = $pdo->query(
         'SELECT id, nama_kopi, origin, proses, tasting_notes, stok_gram, harga, harga_per_kg, gambar_url
@@ -682,7 +684,7 @@ require __DIR__ . '/partials/head.php';
             <?= number_format($stats['total_gram_stok'], 0, ',', '.') ?> <span class="text-base font-sans font-normal text-muted">gram</span>
           </div>
           <p class="text-xs text-muted">
-            Dari <strong><?= count($beans) ?> varietas</strong> single origin
+            Dari <strong><?= count($beans) ?> varietas</strong> single origin Nusantara
           </p>
         </div>
 

@@ -73,7 +73,7 @@ INSERT INTO users (username, password, nama_lengkap, role) VALUES
 ('admin', '$2y$10$i0Wk8C06xur2iTjXja6oxeNXV8nEfCIc9KrARDfis6hhyvz444ZAe', 'Raka Mahendra', 'admin'),
 ('barista', '$2y$10$RGEmsseqrQO.iCdD36GjquJrxZ33J9LnhOTM0lNu3qRigF1qGilzG', 'Arya Pratama', 'barista');
 
--- Katalog Biji Kopi (6 Single Origin, harga = tarif per cup seduhan, harga_per_kg = tarif roasted beans per 1 kg)
+-- Katalog Biji Kopi (6 Single Origin Nusantara, harga = tarif per cup seduhan, harga_per_kg = tarif roasted beans per 1 kg)
 INSERT INTO biji_kopi (nama_kopi, origin, proses, tasting_notes, stok_gram, harga, harga_per_kg, gambar_url) VALUES
 (
     'Aceh Gayo Pantan Musara',
@@ -96,13 +96,13 @@ INSERT INTO biji_kopi (nama_kopi, origin, proses, tasting_notes, stok_gram, harg
     'https://images.unsplash.com/photo-1561766859-f29422062842?auto=format&fit=crop&w=900&q=80'
 ),
 (
-    'Ethiopia Yirgacheffe Chelchele',
-    'Gedeb, Ethiopia • 2.000 mdpl',
+    'Bali Kintamani Ulian',
+    'Bangli, Bali • 1.450 mdpl',
     'Washed',
-    'Jasmine Flower, Bergamot, Lemon Zest',
+    'Jasmine Blossom, Mandarin Orange, Lemon Zest',
     420,
-    26000,
-    420000,
+    21000,
+    290000,
     'https://images.unsplash.com/photo-1703113391576-3beb676b7638?auto=format&fit=crop&w=900&q=80'
 ),
 (
@@ -126,13 +126,13 @@ INSERT INTO biji_kopi (nama_kopi, origin, proses, tasting_notes, stok_gram, harg
     'https://images.unsplash.com/photo-1567613747125-f7ac12360d77?auto=format&fit=crop&w=900&q=80'
 ),
 (
-    'Kenya Nyeri Kiandu AA',
-    'Nyeri Hill, Kenya • 1.800 mdpl',
+    'Papua Wamena Kurima',
+    'Lembah Baliem, Papua • 1.800 mdpl',
     'Washed',
-    'Blackberry, Grapefruit, Cane Sugar',
+    'Blackberry, Red Plum, Cane Sugar',
     75,
-    28000,
-    460000,
+    24000,
+    340000,
     'https://images.unsplash.com/photo-1712251769294-16163363ebef?auto=format&fit=crop&w=900&q=80'
 );
 
@@ -150,10 +150,10 @@ INSERT INTO metode_seduh (nama_metode, rasio_kopi_gram, estimasi_menit, biaya_ta
 -- Data Awal Pesanan (Hari ini & Kemarin)
 INSERT INTO pesanan (kode_pesanan, nama_pelanggan, nomor_meja, biji_kopi_id, metode_seduh_id, tipe_sajian, catatan, total_harga, status, created_at) VALUES
 ('KS-040', 'Maya Larasati', 'Meja 05', 5, 4, 'Hot', 'Ingin body yang tebal dan hangat.', 24000, 'Selesai', NOW() - INTERVAL '1 day'),
-('KS-041', 'Kevin Pratama', 'Bar Seat 04', 6, 1, 'Iced', 'Japanese Iced, es batu secukupnya.', 28000, 'Selesai', NOW() - INTERVAL '35 minutes'),
+('KS-041', 'Kevin Pratama', 'Bar Seat 04', 6, 1, 'Iced', 'Japanese Iced, es batu secukupnya.', 24000, 'Selesai', NOW() - INTERVAL '35 minutes'),
 ('KS-042', 'Nabila Putri', 'Bar Seat 02', 4, 3, 'Iced', 'Ekstraksi manis buah tropis.', 22000, 'Sedang Diseduh', NOW() - INTERVAL '14 minutes'),
 ('KS-043', 'Rian Santoso', 'Meja 03', 2, 1, 'Hot', 'Sajikan dengan suhu agak hangat 65°C.', 18000, 'Sedang Diseduh', NOW() - INTERVAL '9 minutes'),
-('KS-044', 'Sarah Kusuma', 'Meja 07', 3, 2, 'Hot', 'Minta kartu tasting notes.', 27000, 'Menunggu', NOW() - INTERVAL '5 minutes'),
+('KS-044', 'Sarah Kusuma', 'Meja 07', 3, 2, 'Hot', 'Minta kartu tasting notes.', 22000, 'Menunggu', NOW() - INTERVAL '5 minutes'),
 ('KS-045', 'Dimas Wicaksono', 'Bar Seat 01', 1, 1, 'Hot', 'Fokus ke aroma floral dan sweet finish.', 22000, 'Menunggu', NOW() - INTERVAL '2 minutes');
 
 COMMIT;

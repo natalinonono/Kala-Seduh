@@ -476,12 +476,12 @@ function ensureBijiKopiHargaPerKgColumn(PDO $pdo): void
         );
 
         $seedBeanPricing = [
-            ['Aceh Gayo Pantan Musara',       45000, 22000, 320000],
-            ['Flores Bajawa Ngura',           38000, 18000, 240000],
-            ['Ethiopia Yirgacheffe Chelchele', 55000, 26000, 420000],
-            ['Java Preanger Gunung Halu',     42000, 20000, 280000],
-            ['Toraja Sapan Minanga',          40000, 19000, 260000],
-            ['Kenya Nyeri Kiandu AA',         60000, 28000, 460000],
+            ['Aceh Gayo Pantan Musara',   45000, 22000, 320000],
+            ['Flores Bajawa Ngura',       38000, 18000, 240000],
+            ['Bali Kintamani Ulian',      55000, 21000, 290000],
+            ['Java Preanger Gunung Halu', 42000, 20000, 280000],
+            ['Toraja Sapan Minanga',      40000, 19000, 260000],
+            ['Papua Wamena Kurima',       60000, 24000, 340000],
         ];
         $stmtBean = $pdo->prepare(
             'UPDATE biji_kopi
@@ -521,4 +521,63 @@ function ensureBijiKopiHargaPerKgColumn(PDO $pdo): void
     }
 
     $checked = true;
+}
+
+/**
+ * Menyesuaikan seed biji kopi non-Indonesia lama (Ethiopia & Kenya) di database
+ * menjadi biji kopi single origin Nusantara (Bali Kintamani Ulian & Papua Wamena Kurima)
+ * tanpa memutus relasi pesanan historis.
+ */
+function syncIndonesianBeansCatalog(PDO $pdo): void
+{
+    static $synced = false;
+    if ($synced) {
+        return;
+    }
+
+    $replacements = [
+        [
+            'old_nama'     => 'Ethiopia Yirgacheffe Chelchele',
+            'nama_kopi'    => 'Bali Kintamani Ulian',
+            'origin'       => 'Bangli, Bali • 1.450 mdpl',
+            'proses'       => 'Washed',
+            'notes'        => 'Jasmine Blossom, Mandarin Orange, Lemon Zest',
+            'harga'        => 21000,
+            'harga_per_kg' => 290000,
+        ],
+        [
+            'old_nama'     => 'Kenya Nyeri Kiandu AA',
+            'nama_kopi'    => 'Papua Wamena Kurima',
+            'origin'       => 'Lembah Baliem, Papua • 1.800 mdpl',
+            'proses'       => 'Washed',
+            'notes'        => 'Blackberry, Red Plum, Cane Sugar',
+            'harga'        => 24000,
+            'harga_per_kg' => 340000,
+        ],
+    ];
+
+    $stmt = $pdo->prepare(
+        'UPDATE biji_kopi
+         SET nama_kopi = :nama,
+             origin = :origin,
+             proses = :proses,
+             tasting_notes = :notes,
+             harga = :harga,
+             harga_per_kg = :harga_kg
+         WHERE nama_kopi = :old_nama'
+    );
+
+    foreach ($replacements as $row) {
+        $stmt->execute([
+            ':nama'     => $row['nama_kopi'],
+            ':origin'   => $row['origin'],
+            ':proses'   => $row['proses'],
+            ':notes'    => $row['notes'],
+            ':harga'    => $row['harga'],
+            ':harga_kg' => $row['harga_per_kg'],
+            ':old_nama' => $row['old_nama'],
+        ]);
+    }
+
+    $synced = true;
 }

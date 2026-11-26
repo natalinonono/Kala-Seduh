@@ -93,6 +93,7 @@ if (mb_strlen($catatan) > 300) {
 try {
     $pdo = getDbConnection();
     ensureBijiKopiHargaPerKgColumn($pdo);
+    syncIndonesianBeansCatalog($pdo);
     ensureMetodeSeduhStockColumn($pdo);
     $pdo->beginTransaction();
 

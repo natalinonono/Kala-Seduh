@@ -21,6 +21,7 @@ try {
     $pdo = getDbConnection();
 
     ensureBijiKopiHargaPerKgColumn($pdo);
+    syncIndonesianBeansCatalog($pdo);
     ensureMetodeSeduhStockColumn($pdo);
 
     $beans = $pdo->query(
@@ -360,7 +361,7 @@ require __DIR__ . '/partials/head.php';
                   </div>
                 <?php else: ?>
                   <h2 class="font-editorial text-3xl font-medium text-white">Kala Seduh Slow Bar</h2>
-                  <p class="text-sm text-[#DAC2B5]">Single origin pilihan diseduh manual untuk Anda.</p>
+                  <p class="text-sm text-[#DAC2B5]">Single origin Nusantara pilihan diseduh manual untuk Anda.</p>
                 <?php endif; ?>
               </div>
             </div>
@@ -481,7 +482,7 @@ require __DIR__ . '/partials/head.php';
               <span class="text-[11px] font-bold uppercase tracking-[0.18em] text-terracotta block">Langkah 1 • Katalog Beans</span>
               <h2 class="font-editorial text-3xl sm:text-4xl text-espresso font-medium leading-tight">Pilih Beans Favorit Anda</h2>
               <p class="text-sm text-muted max-w-2xl">
-                Pilih biji single origin yang tersedia, lalu tentukan teknik penyeduhan manual yang diinginkan.
+                Pilih biji kopi Nusantara yang tersedia, lalu tentukan teknik penyeduhan manual yang diinginkan.
               </p>
             </div>
 
