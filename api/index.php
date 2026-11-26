@@ -161,13 +161,15 @@ $methodsJson = json_encode(
     array_map(static function (array $m): array {
         $profile = getMethodProfile((string) $m['nama_metode']);
         return [
-            'id'              => (int) $m['id'],
-            'nama_metode'     => (string) $m['nama_metode'],
-            'rasio_kopi_gram' => (int) $m['rasio_kopi_gram'],
-            'estimasi_menit'  => (int) $m['estimasi_menit'],
-            'biaya_tambahan'  => (int) $m['biaya_tambahan'],
-            'stok_porsi'      => $m['stok_porsi'] !== null ? (int) $m['stok_porsi'] : null,
-            'kategori'        => $profile['kategori'],
+            'id'                     => (int) $m['id'],
+            'nama_metode'            => (string) $m['nama_metode'],
+            'rasio_kopi_gram'        => (int) $m['rasio_kopi_gram'],
+            'estimasi_menit'         => (int) $m['estimasi_menit'],
+            'biaya_tambahan'         => (int) $m['biaya_tambahan'],
+            'stok_porsi'             => $m['stok_porsi'] !== null ? (int) $m['stok_porsi'] : null,
+            'supports_flavor_tuning' => methodSupportsFlavorTuning((string) $m['nama_metode']),
+            'tuning_notice'          => getMethodFlavorTuningNotice((string) $m['nama_metode']),
+            'kategori'               => $profile['kategori'],
             'dampak_badge'    => $profile['dampak_badge'],
             'perbedaan'       => $profile['perbedaan'],
             'pengaruh_rasa'   => $profile['pengaruh_rasa'],
@@ -637,7 +639,7 @@ require __DIR__ . '/partials/head.php';
                       <?php $cardFlavorTargets = buildBeanFlavorTargets((string) $bean['tasting_notes'], (string) $bean['proses']); ?>
                       <div class="space-y-1.5">
                         <span class="block text-[10px] font-bold uppercase tracking-wider text-muted">
-                          Pilih fokus rasa &amp; suhu seduh:
+                          Fokus rasa (seduh manual filter/press):
                         </span>
                         <div class="flex flex-wrap gap-1.5">
                           <?php foreach ($cardFlavorTargets as $ft): ?>
@@ -903,28 +905,10 @@ require __DIR__ . '/partials/head.php';
             </div>
           </div>
 
-          <!-- 2. Pilih Fokus Rasa & Rekomendasi Suhu Seduh -->
-          <div class="space-y-2">
-            <span class="block text-xs font-bold uppercase tracking-wider text-espresso">
-              2. Tonjolkan Karakter Rasa &amp; Suhu Seduh
-            </span>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2" id="drawer-flavor-targets"></div>
-            <div id="drawer-temp-insight" class="bg-white border border-sand rounded-xl p-3 flex items-start gap-2.5 text-xs">
-              <div class="px-2.5 py-1.5 rounded-lg bg-terracotta-soft text-[#8F3F27] font-bold text-center shrink-0">
-                <span class="block text-sm leading-none tabular-nums" id="drawer-temp-badge">90°C</span>
-                <span class="block text-[9px] mt-0.5 tabular-nums" id="drawer-temp-range">89°C–91°C</span>
-              </div>
-              <div class="min-w-0 space-y-0.5">
-                <span class="text-[10px] font-bold uppercase tracking-wider text-espresso block" id="drawer-temp-category">-</span>
-                <p class="text-muted leading-snug" id="drawer-temp-desc">-</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- 3. Pilih Teknik Penyeduhan -->
+          <!-- 2. Pilih Teknik Penyeduhan -->
           <div class="space-y-2.5">
             <span class="block text-xs font-bold uppercase tracking-wider text-espresso">
-              3. Pilih Teknik Penyeduhan
+              2. Pilih Teknik Penyeduhan
             </span>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5" id="drawer-methods-grid">
               <?php foreach ($methods as $idx => $m): ?>
@@ -981,6 +965,32 @@ require __DIR__ . '/partials/head.php';
             </div>
           </div>
 
+          <!-- 3. Pilih Fokus Rasa & Rekomendasi Suhu Seduh (Khusus Metode Manual Brew) -->
+          <div class="space-y-2" id="drawer-flavor-section">
+            <span class="block text-xs font-bold uppercase tracking-wider text-espresso">
+              3. Tonjolkan Karakter Rasa &amp; Suhu Seduh
+            </span>
+            <div id="drawer-flavor-controls" class="space-y-2">
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2" id="drawer-flavor-targets"></div>
+              <div id="drawer-temp-insight" class="bg-white border border-sand rounded-xl p-3 flex items-start gap-2.5 text-xs">
+                <div class="px-2.5 py-1.5 rounded-lg bg-terracotta-soft text-[#8F3F27] font-bold text-center shrink-0">
+                  <span class="block text-sm leading-none tabular-nums" id="drawer-temp-badge">90°C</span>
+                  <span class="block text-[9px] mt-0.5 tabular-nums" id="drawer-temp-range">89°C–91°C</span>
+                </div>
+                <div class="min-w-0 space-y-0.5">
+                  <span class="text-[10px] font-bold uppercase tracking-wider text-espresso block" id="drawer-temp-category">-</span>
+                  <p class="text-muted leading-snug" id="drawer-temp-desc">-</p>
+                </div>
+              </div>
+            </div>
+            <div id="drawer-flavor-disabled-notice" class="hidden bg-surface-low border border-sand rounded-xl p-3 text-xs text-muted leading-relaxed">
+              <div class="flex items-start gap-2">
+                <span class="material-symbols-outlined text-[17px] text-outline shrink-0 mt-0.5">info</span>
+                <span id="drawer-flavor-disabled-text">-</span>
+              </div>
+            </div>
+          </div>
+
           <!-- Ringkasan Harga & Validasi Stok -->
           <div class="bg-surface-low border border-sand rounded-xl p-4 space-y-2 text-xs">
             <div class="flex justify-between text-muted">
@@ -995,7 +1005,7 @@ require __DIR__ . '/partials/head.php';
               <span>Teknik Penyeduhan (<span id="summary-method-name">-</span>)</span>
               <span class="font-semibold text-espresso tabular-nums" id="summary-method-fee">Rp 0</span>
             </div>
-            <div class="flex justify-between text-muted">
+            <div id="summary-flavor-temp-row" class="flex justify-between text-muted">
               <span>Fokus Rasa &amp; Suhu</span>
               <span class="font-semibold text-terracotta tabular-nums" id="summary-flavor-temp">-</span>
             </div>
@@ -1175,6 +1185,12 @@ require __DIR__ . '/partials/head.php';
           const radios = Array.from(document.querySelectorAll('input[name="metode_seduh_id"]'));
           const compatibleRadio = radios.find((el) => {
             if (el.disabled) return false;
+            const mObj = METHODS_DATA.find((m) => m.id === Number(el.value));
+            if (!mObj) return false;
+            if (flavorName && !mObj.supports_flavor_tuning) return false;
+            return !selectedBeanObj || selectedBeanObj.stok_gram >= mObj.rasio_kopi_gram;
+          }) || radios.find((el) => {
+            if (el.disabled) return false;
             if (!selectedBeanObj) return true;
             const mObj = METHODS_DATA.find((m) => m.id === Number(el.value));
             return mObj && selectedBeanObj.stok_gram >= mObj.rasio_kopi_gram;
@@ -1241,13 +1257,30 @@ require __DIR__ . '/partials/head.php';
       updateOrderCalculator();
     }
 
-    function syncFlavorTargetsUI(bean) {
+    function syncFlavorTargetsUI(bean, method) {
+      const controlsWrap = document.getElementById('drawer-flavor-controls');
+      const disabledNotice = document.getElementById('drawer-flavor-disabled-notice');
+      const disabledText = document.getElementById('drawer-flavor-disabled-text');
+      const sumFlavorRow = document.getElementById('summary-flavor-temp-row');
       const container = document.getElementById('drawer-flavor-targets');
       const badge = document.getElementById('drawer-temp-badge');
       const range = document.getElementById('drawer-temp-range');
       const cat = document.getElementById('drawer-temp-category');
       const desc = document.getElementById('drawer-temp-desc');
       const sumFlavor = document.getElementById('summary-flavor-temp');
+
+      const supportsTuning = Boolean(method?.supports_flavor_tuning);
+      if (controlsWrap) controlsWrap.classList.toggle('hidden', !supportsTuning);
+      if (disabledNotice) disabledNotice.classList.toggle('hidden', supportsTuning);
+      if (sumFlavorRow) sumFlavorRow.classList.toggle('hidden', !supportsTuning);
+
+      if (!supportsTuning) {
+        if (disabledText) {
+          disabledText.textContent = method?.tuning_notice
+            || `Pemilihan fokus rasa & suhu seduh hanya berlaku untuk seduhan manual (V60, Kalita Wave, AeroPress, Syphon, French Press), tidak berlaku untuk ${method?.nama_metode || 'metode ini'}.`;
+        }
+        return;
+      }
 
       const targets = Array.isArray(bean?.flavor_targets) && bean.flavor_targets.length > 0
         ? bean.flavor_targets
@@ -1314,7 +1347,7 @@ require __DIR__ . '/partials/head.php';
         return;
       }
 
-      syncFlavorTargetsUI(bean);
+      syncFlavorTargetsUI(bean, method);
 
       if (beanThumb && bean.gambar_url) {
         beanThumb.src = bean.gambar_url;
@@ -1536,10 +1569,12 @@ require __DIR__ . '/partials/head.php';
       if (submitBtn) submitBtn.disabled = true;
       if (submitLabel) submitLabel.textContent = 'Memproses Pesanan...';
 
+      const selectedMethodId = Number(form.querySelector('input[name="metode_seduh_id"]:checked')?.value || 0);
+      const selectedMethodObj = METHODS_DATA.find((m) => m.id === selectedMethodId);
       const payload = {
         biji_kopi_id: Number(form.biji_kopi_id.value),
-        metode_seduh_id: Number(form.querySelector('input[name="metode_seduh_id"]:checked')?.value || 0),
-        fokus_rasa: selectedFlavorTarget || '',
+        metode_seduh_id: selectedMethodId,
+        fokus_rasa: selectedMethodObj?.supports_flavor_tuning ? (selectedFlavorTarget || '') : '',
       };
 
       try {

@@ -550,6 +550,33 @@ function matchBeanFlavorTarget(string $tastingNotes, string $proses, string $req
 }
 
 /**
+ * Menentukan apakah metode penyeduhan mendukung pemilihan fokus rasa & suhu tuang
+ * secara manual per karakter beans (pour-over/immersion manual, bukan espresso/susu).
+ */
+function methodSupportsFlavorTuning(string $namaMetode): bool
+{
+    $lower = strtolower(trim($namaMetode));
+    foreach (['latte', 'americano', 'espresso', 'cappuccino', 'flat white', 'piccolo', 'mocha', 'macchiato'] as $excluded) {
+        if (str_contains($lower, $excluded)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/**
+ * Penjelasan kenapa metode berbasis espresso/susu tidak memakai pemilihan fokus rasa beans.
+ */
+function getMethodFlavorTuningNotice(string $namaMetode): string
+{
+    $lower = strtolower(trim($namaMetode));
+    if (str_contains($lower, 'latte') || str_contains($lower, 'cappuccino') || str_contains($lower, 'mocha') || str_contains($lower, 'flat white')) {
+        return 'Khusus sajian susu seperti ' . $namaMetode . ', steamed milk melembutkan keasaman dan menyatukan rasa menjadi creamy sehingga pemilihan fokus rasa beans tidak digunakan.';
+    }
+    return 'Khusus teknik tekanan mesin espresso seperti ' . $namaMetode . ', ekstraksi 9 bar dan suhu boiler sudah terkalibrasi standar sehingga tidak memakai pengaturan fokus rasa per catatan beans.';
+}
+
+/**
  * Memastikan kolom stok_porsi pada tabel metode_seduh tersedia di database.
  */
 function ensureMetodeSeduhStockColumn(PDO $pdo): void

@@ -1547,7 +1547,7 @@ require __DIR__ . '/partials/head.php';
           </select>
         </div>
 
-        <div class="space-y-1">
+        <div id="walkin-flavor-wrapper" class="space-y-1">
           <label class="block text-xs font-semibold text-espresso">Tonjolkan Karakter Rasa &amp; Suhu Seduh *</label>
           <select id="walkin-flavor-select" name="fokus_rasa" class="w-full h-10 px-3 rounded bg-white border border-sand text-sm"></select>
         </div>
@@ -1555,7 +1555,7 @@ require __DIR__ . '/partials/head.php';
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div class="space-y-1">
             <label class="block text-xs font-semibold text-espresso">Metode Seduh *</label>
-            <select name="metode_seduh_id" required class="w-full h-10 px-3 rounded bg-white border border-sand text-sm">
+            <select id="walkin-method-select" name="metode_seduh_id" required onchange="syncWalkinFlavorOptions()" class="w-full h-10 px-3 rounded bg-white border border-sand text-sm">
               <?php foreach ($methods as $m): ?>
                 <?php $wStok = $m['stok_porsi'] !== null ? (int) $m['stok_porsi'] : null; ?>
                 <option value="<?= (int) $m['id'] ?>" <?= ($wStok !== null && $wStok <= 0) ? 'disabled' : '' ?>>
@@ -1706,10 +1706,29 @@ require __DIR__ . '/partials/head.php';
         JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE
     ) ?>;
 
+    const WALKIN_METHOD_TUNING = <?= json_encode(
+        array_column(
+            array_map(static fn(array $m): array => [
+                'id'       => (int) $m['id'],
+                'supports' => methodSupportsFlavorTuning((string) $m['nama_metode']),
+            ], $methods),
+            'supports',
+            'id'
+        ),
+        JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE
+    ) ?>;
+
     function syncWalkinFlavorOptions() {
       const beanSel = document.getElementById('walkin-bean-select');
+      const methodSel = document.getElementById('walkin-method-select');
+      const flavorWrap = document.getElementById('walkin-flavor-wrapper');
       const flavorSel = document.getElementById('walkin-flavor-select');
       if (!beanSel || !flavorSel) return;
+
+      const supports = methodSel ? Boolean(WALKIN_METHOD_TUNING[Number(methodSel.value)]) : true;
+      if (flavorWrap) flavorWrap.classList.toggle('hidden', !supports);
+      flavorSel.disabled = !supports;
+      if (!supports) return;
 
       const targets = WALKIN_FLAVORS_MAP[Number(beanSel.value)] || [];
       flavorSel.innerHTML = '';

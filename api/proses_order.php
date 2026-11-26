@@ -185,14 +185,24 @@ try {
     }
 
     $totalHarga = (int) $bean['harga'] + (int) $method['biaya_tambahan'];
-    $matchedFlavor = matchBeanFlavorTarget((string) ($bean['tasting_notes'] ?? ''), (string) $bean['proses'], $fokusRasa);
-    $brewNote = sprintf(
-        'Fokus rasa: %s • Suhu seduh: %d°C (%s)',
-        $matchedFlavor['rasa'],
-        $matchedFlavor['suhu'],
-        $matchedFlavor['rentang']
-    );
-    $catatanFinal = $catatan !== '' ? ($brewNote . ' | ' . $catatan) : $brewNote;
+    $supportsTuning = methodSupportsFlavorTuning((string) $method['nama_metode']);
+    $selectedFlavorLabel = null;
+    $selectedBrewTemp = null;
+    $catatanFinal = $catatan;
+
+    if ($supportsTuning) {
+        $matchedFlavor = matchBeanFlavorTarget((string) ($bean['tasting_notes'] ?? ''), (string) $bean['proses'], $fokusRasa);
+        $selectedFlavorLabel = $matchedFlavor['rasa'];
+        $selectedBrewTemp = $matchedFlavor['suhu'] . '°C';
+        $brewNote = sprintf(
+            'Fokus rasa: %s • Suhu seduh: %d°C (%s)',
+            $matchedFlavor['rasa'],
+            $matchedFlavor['suhu'],
+            $matchedFlavor['rentang']
+        );
+        $catatanFinal = $catatan !== '' ? ($brewNote . ' | ' . $catatan) : $brewNote;
+    }
+
     if (mb_strlen($catatanFinal) > 300) {
         $catatanFinal = mb_substr($catatanFinal, 0, 300);
     }
@@ -276,8 +286,8 @@ try {
         'rasio_kopi_gram' => $butuhGram,
         'estimasi_menit'  => (int) $method['estimasi_menit'],
         'tipe_sajian'     => $tipeSajian,
-        'fokus_rasa'      => $matchedFlavor['rasa'],
-        'suhu_seduh'      => $matchedFlavor['suhu'] . '°C',
+        'fokus_rasa'      => $selectedFlavorLabel,
+        'suhu_seduh'      => $selectedBrewTemp,
         'catatan'         => $catatanFinal,
         'total_harga'     => $totalHarga,
         'status'          => 'Menunggu',
