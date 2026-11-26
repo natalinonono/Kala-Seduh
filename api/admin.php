@@ -959,13 +959,16 @@ require __DIR__ . '/partials/head.php';
                           </div>
                         </div>
                       </td>
-                      <td class="py-3.5 px-4 max-w-[235px]">
+                      <td class="py-3.5 px-4 max-w-[270px]">
                         <?php $beanProcessProfile = getProcessProfile((string) $bean['proses']); ?>
                         <span class="inline-block px-2.5 py-0.5 rounded-full bg-surface-mid text-espresso text-xs font-semibold">
-                          <?= e($bean['proses']) ?>
+                          <?= e($beanProcessProfile['judul']) ?>
                         </span>
-                        <p class="text-[11px] text-muted leading-snug mt-1">
-                          <?= e($beanProcessProfile['karakter_rasa']) ?>
+                        <p class="text-[11px] text-espresso/90 leading-snug mt-1">
+                          <?= e($beanProcessProfile['cara_proses']) ?>
+                        </p>
+                        <p class="text-[11px] text-muted leading-snug mt-0.5">
+                          <strong class="text-terracotta">Rasa:</strong> <?= e($beanProcessProfile['karakter_rasa']) ?>
                         </p>
                       </td>
                       <td class="py-3.5 px-4 text-xs text-muted max-w-[220px]">

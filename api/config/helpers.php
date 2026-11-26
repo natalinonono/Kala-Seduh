@@ -409,26 +409,26 @@ function getAllProcessProfiles(): array
 {
     return [
         'Natural' => [
-            'judul'         => 'Natural (Dry Process)',
-            'cara_proses'   => 'Buah ceri kopi dijemur utuh bersama kulit dan daging buahnya hingga kering sebelum dikupas.',
-            'karakter_rasa' => 'Manis buah matang sangat kuat (berry/tropis), body tebal & legit, keasaman lembut.',
+            'judul'         => 'Natural (Jemur Utuh)',
+            'cara_proses'   => 'Buah ceri kopi tidak dikupas dan langsung dijemur utuh bersama kulit serta daging buahnya 2–4 minggu sebelum digiling.',
+            'karakter_rasa' => 'Gula buah meresap ke biji sehingga terasa manis buah matang (berry/tropis), body tebal & legit, keasaman lembut.',
             'cocok_untuk'   => 'Pecinta kopi manis buah & body tebal.',
         ],
         'Washed' => [
-            'judul'         => 'Washed (Full Wash)',
-            'cara_proses'   => 'Daging & lendir buah dicuci bersih dengan air terlebih dahulu sebelum biji dikeringkan.',
-            'karakter_rasa' => 'Rasa sangat bersih (clean), jernih, keasaman cerah (citrus/floral), karakter asli daerah paling terasa.',
+            'judul'         => 'Washed (Cuci Bersih)',
+            'cara_proses'   => 'Kulit ceri kopi dikupas, lalu biji difermentasi 12–36 jam dan dicuci bersih memakai air hingga seluruh lendir buah hilang sebelum dijemur.',
+            'karakter_rasa' => 'Rasa paling bersih (clean), jernih, keasaman cerah (citrus/floral), dan karakter asli daerah asalnya tetap utuh.',
             'cocok_untuk'   => 'Pecinta kopi bersih, segar & floral/citrus.',
         ],
         'Honey' => [
-            'judul'         => 'Honey Process (Pulped Natural)',
-            'cara_proses'   => 'Kulit luar dikupas, lalu sebagian lapisan lendir manis (mucilage) dibiarkan menempel saat penjemuran.',
-            'karakter_rasa' => 'Seimbang di antara Washed dan Natural: manis karamel/madu lembut dengan keasaman halus.',
+            'judul'         => 'Honey Process (Lendir Buah)',
+            'cara_proses'   => 'Kulit luar ceri dikupas, tetapi lapisan lendir manis buahnya (mucilage) dibiarkan menempel saat dijemur (bukan ditambah madu).',
+            'karakter_rasa' => 'Seimbang di antara Washed dan Natural: manis karamel lembut dengan keasaman halus.',
             'cocok_untuk'   => 'Pecinta rasa manis seimbang tanpa terlalu asam atau berat.',
         ],
         'Anaerobic' => [
-            'judul'         => 'Anaerobic Fermentation',
-            'cara_proses'   => 'Ceri kopi difermentasi dalam tangki tertutup kedap udara tanpa oksigen pada suhu & waktu terkontrol.',
+            'judul'         => 'Anaerobic (Kedap Udara)',
+            'cara_proses'   => 'Ceri atau biji kopi dimasukkan ke tangki tertutup kedap udara tanpa oksigen selama beberapa hari sebelum dikeringkan agar fermentasi terkendali.',
             'karakter_rasa' => 'Aroma sangat ekspresif & unik (winey, buah fermentasi, rempah/teh), manis tajam dan kompleks.',
             'cocok_untuk'   => 'Pecinta eksplorasi aroma unik & rasa intens.',
         ],

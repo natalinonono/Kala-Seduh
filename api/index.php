@@ -615,9 +615,10 @@ require __DIR__ . '/partials/head.php';
                         <?php endforeach; ?>
                       </div>
                       <?php $cardProcessProfile = getProcessProfile((string) $bean['proses']); ?>
-                      <p class="text-[11px] text-muted leading-relaxed">
-                        <strong class="text-espresso"><?= e($cardProcessProfile['judul']) ?>:</strong> <?= e($cardProcessProfile['karakter_rasa']) ?>
-                      </p>
+                      <div class="text-[11px] text-muted leading-relaxed space-y-0.5">
+                        <p><strong class="text-espresso"><?= e($cardProcessProfile['judul']) ?>:</strong> <?= e($cardProcessProfile['cara_proses']) ?></p>
+                        <p><strong class="text-terracotta">Karakter rasa:</strong> <?= e($cardProcessProfile['karakter_rasa']) ?></p>
+                      </div>
                     </div>
 
                     <div class="bg-surface-low border border-sand/80 rounded-lg px-3.5 py-2.5 text-xs text-muted flex items-center justify-between">
@@ -1186,7 +1187,7 @@ require __DIR__ . '/partials/head.php';
       if (beanProcessNote) {
         const pInfo = PROCESS_PROFILES[bean.proses];
         beanProcessNote.textContent = pInfo
-          ? `Proses ${pInfo.judul}: ${pInfo.karakter_rasa}`
+          ? `${pInfo.judul}: ${pInfo.cara_proses} (${pInfo.karakter_rasa})`
           : '';
       }
 
