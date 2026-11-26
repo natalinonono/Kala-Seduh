@@ -209,11 +209,11 @@ require __DIR__ . '/partials/head.php';
     </div>
   </header>
 
-  <!-- Bar Informasi Kalibrasi Pagi -->
+  <!-- Bar Informasi Kalibrasi Bar -->
   <div class="w-full bg-surface-high border-b border-sand py-2 px-5 text-center">
     <p class="text-xs text-muted flex items-center justify-center gap-2 flex-wrap">
       <span class="inline-block w-2 h-2 rounded-full bg-terracotta animate-pulse"></span>
-      <span>Bar Kalibrasi Pagi Selesai • Suhu Air Ideal 91°C–93°C • Rasio Manual Brew Presisi</span>
+      <span>Kalibrasi Bar Selesai • Buka Setiap Hari 18.00 WIB • Suhu Air Ideal 91°C–93°C</span>
     </p>
   </div>
 
@@ -988,8 +988,9 @@ require __DIR__ . '/partials/head.php';
         <p class="font-editorial italic text-sm text-muted">Menghargai waktu, suhu air, dan setiap tetes ekstraksi manual.</p>
       </div>
       <div class="text-xs text-muted space-y-1 md:text-right">
-        <p>Selasa – Minggu: 08.00 – 21.00 WIB</p>
-        <p>© <?= date('Y') ?> Kala Seduh Slow Bar • PHP Native + PostgreSQL Supabase</p>
+        <p class="font-medium text-espresso">Buka Setiap Hari: 18.00 – 21.00 WIB (Last Order)</p>
+        <p>Khusus Sabtu: 18.00 – 23.55 WIB (Last Order)</p>
+        <p class="pt-0.5">© <?= date('Y') ?> Kala Seduh Slow Bar</p>
       </div>
     </div>
   </footer>
