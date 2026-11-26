@@ -20,21 +20,48 @@ $queueOrders = [];
 try {
     $pdo = getDbConnection();
 
-    ensureBijiKopiHargaPerKgColumn($pdo);
-    syncIndonesianBeansCatalog($pdo);
-    ensureMetodeSeduhStockColumn($pdo);
+    try {
+        $beans = $pdo->query(
+            'SELECT id, nama_kopi, origin, proses, tasting_notes, stok_gram, harga, harga_per_kg, gambar_url
+             FROM biji_kopi
+             ORDER BY CASE WHEN stok_gram > 0 THEN 0 ELSE 1 END, id ASC'
+        )->fetchAll();
+    } catch (PDOException $e) {
+        if ($e->getCode() === '42703') {
+            ensureBijiKopiHargaPerKgColumn($pdo);
+            $beans = $pdo->query(
+                'SELECT id, nama_kopi, origin, proses, tasting_notes, stok_gram, harga, harga_per_kg, gambar_url
+                 FROM biji_kopi
+                 ORDER BY CASE WHEN stok_gram > 0 THEN 0 ELSE 1 END, id ASC'
+            )->fetchAll();
+        } else {
+            throw $e;
+        }
+    }
+    $beans = syncIndonesianBeansCatalog($pdo, $beans);
+    usort(
+        $beans,
+        static fn(array $a, array $b): int => ((int) $a['stok_gram'] > 0 ? 0 : 1) <=> ((int) $b['stok_gram'] > 0 ? 0 : 1) ?: ((int) $a['id'] <=> (int) $b['id'])
+    );
 
-    $beans = $pdo->query(
-        'SELECT id, nama_kopi, origin, proses, tasting_notes, stok_gram, harga, harga_per_kg, gambar_url
-         FROM biji_kopi
-         ORDER BY CASE WHEN stok_gram > 0 THEN 0 ELSE 1 END, id ASC'
-    )->fetchAll();
-
-    $methods = $pdo->query(
-        'SELECT id, nama_metode, rasio_kopi_gram, estimasi_menit, biaya_tambahan, stok_porsi
-         FROM metode_seduh
-         ORDER BY id ASC'
-    )->fetchAll();
+    try {
+        $methods = $pdo->query(
+            'SELECT id, nama_metode, rasio_kopi_gram, estimasi_menit, biaya_tambahan, stok_porsi
+             FROM metode_seduh
+             ORDER BY id ASC'
+        )->fetchAll();
+    } catch (PDOException $e) {
+        if ($e->getCode() === '42703') {
+            ensureMetodeSeduhStockColumn($pdo);
+            $methods = $pdo->query(
+                'SELECT id, nama_metode, rasio_kopi_gram, estimasi_menit, biaya_tambahan, stok_porsi
+                 FROM metode_seduh
+                 ORDER BY id ASC'
+            )->fetchAll();
+        } else {
+            throw $e;
+        }
+    }
     $methods = syncExtraDefaultMethods($pdo, $methods);
     $methods = removeColdBrewMethod($pdo, $methods);
 
@@ -307,29 +334,28 @@ require __DIR__ . '/partials/head.php';
         <div class="lg:col-span-6">
           <?php $heroImg = resolveBeanImageUrl($featuredBean['gambar_url'] ?? null); ?>
           <div class="relative rounded-xl overflow-hidden bg-[#231710] border border-sand shadow-ambient">
-            <div class="relative h-[380px] sm:h-[460px] w-full bg-[#231710] overflow-hidden">
-              <img
-                src="<?= e($heroImg) ?>"
-                alt=""
-                aria-hidden="true"
-                class="absolute inset-0 w-full h-full object-cover blur-2xl scale-125 opacity-55 pointer-events-none"
-                onerror="this.style.display='none'"
-              />
+            <div class="relative h-[380px] sm:h-[460px] w-full bg-[radial-gradient(circle_at_center,#3B281E_0%,#1C110B_100%)] overflow-hidden">
               <img
                 src="<?= e($heroImg) ?>"
                 alt="<?= e($featuredBean['nama_kopi'] ?? 'Beans Kala Seduh') ?>"
+                fetchpriority="high"
+                decoding="async"
                 class="relative z-10 w-full h-full object-contain"
                 onerror="this.style.display='none'"
               />
               <div class="absolute inset-0 z-20 bg-gradient-to-t from-espresso-dark/90 via-espresso-dark/25 to-transparent pointer-events-none"></div>
 
               <div class="absolute top-4 left-4 right-4 z-30 flex items-center justify-between gap-2 flex-wrap">
-                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/90 backdrop-blur-md text-espresso text-[11px] font-semibold uppercase tracking-wider">
+                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/95 text-espresso text-[11px] font-semibold uppercase tracking-wider shadow-sm">
                   <span class="w-2 h-2 rounded-full bg-terracotta animate-pulse"></span>
                   Kurasi Beans Hari Ini
                 </span>
                 <?php if ($featuredBean !== null): ?>
-                  <span class="px-3 py-1 rounded-full bg-espresso/80 backdrop-blur-md text-cream font-editorial italic text-sm">
+                  <span
+                    id="hero-featured-stock"
+                    data-featured-id="<?= (int) $featuredBean['id'] ?>"
+                    class="px-3 py-1 rounded-full bg-espresso/90 text-cream font-editorial italic text-sm tabular-nums shadow-sm"
+                  >
                     Tersedia • <?= (int) $featuredBean['stok_gram'] ?>g
                   </span>
                 <?php endif; ?>
@@ -346,7 +372,7 @@ require __DIR__ . '/partials/head.php';
                   <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
                     <div class="flex flex-wrap items-center gap-1.5">
                       <?php foreach (array_filter(array_map('trim', explode(',', (string) $featuredBean['tasting_notes']))) as $note): ?>
-                        <span class="text-xs px-2.5 py-0.5 rounded-full bg-white/15 backdrop-blur-sm text-cream border border-white/20">
+                        <span class="text-xs px-2.5 py-0.5 rounded-full bg-espresso-dark/70 text-cream border border-white/25">
                           <?= e($note) ?>
                         </span>
                       <?php endforeach; ?>
@@ -566,25 +592,18 @@ require __DIR__ . '/partials/head.php';
                 <div class="flex-1 flex flex-col">
                   <!-- Gambar Beans (Utuh tanpa terpotong) -->
                   <?php $beanImgUrl = resolveBeanImageUrl((string) $bean['gambar_url']); ?>
-                  <div class="relative aspect-[4/3] w-full bg-[#231710] overflow-hidden">
-                    <img
-                      src="<?= e($beanImgUrl) ?>"
-                      alt=""
-                      aria-hidden="true"
-                      class="absolute inset-0 w-full h-full object-cover blur-xl scale-125 opacity-55 pointer-events-none"
-                      loading="lazy"
-                      onerror="this.style.display='none'"
-                    />
+                  <div class="relative aspect-[4/3] w-full bg-[radial-gradient(circle_at_center,#3B281E_0%,#1C110B_100%)] overflow-hidden">
                     <img
                       src="<?= e($beanImgUrl) ?>"
                       alt="<?= e($bean['nama_kopi']) ?>"
-                      class="relative z-10 w-full h-full object-contain group-hover:scale-[1.03] transition-transform duration-500"
+                      class="relative z-10 w-full h-full object-contain group-hover:scale-[1.03] transition-transform duration-300"
                       loading="lazy"
+                      decoding="async"
                       onerror="this.style.display='none'"
                     />
                     <div class="absolute inset-x-0 top-0 z-20 h-16 bg-gradient-to-b from-espresso-dark/35 to-transparent pointer-events-none"></div>
                     <div class="absolute top-3 left-3 z-30">
-                      <span class="px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-sm text-espresso text-[11px] font-bold uppercase tracking-wider border border-sand shadow-sm">
+                      <span class="px-2.5 py-1 rounded-full bg-white/95 text-espresso text-[11px] font-bold uppercase tracking-wider border border-sand shadow-sm">
                         <?= e($bean['proses']) ?>
                       </span>
                     </div>
@@ -697,20 +716,13 @@ require __DIR__ . '/partials/head.php';
             <div class="group bg-paper border border-sand rounded-xl overflow-hidden flex flex-col justify-between hover:border-[#C9BFB0] hover:shadow-ambient hover:-translate-y-0.5 transition-all duration-300">
               <div class="flex-1 flex flex-col">
                 <!-- Foto Teknik Penyeduhan (Utuh tanpa terpotong) -->
-                <div class="relative aspect-[4/3] w-full bg-[#231710] overflow-hidden">
-                  <img
-                    src="<?= e($methodImgUrl) ?>"
-                    alt=""
-                    aria-hidden="true"
-                    class="absolute inset-0 w-full h-full object-cover blur-xl scale-125 opacity-55 pointer-events-none"
-                    loading="lazy"
-                    onerror="this.style.display='none'"
-                  />
+                <div class="relative aspect-[4/3] w-full bg-[radial-gradient(circle_at_center,#3B281E_0%,#1C110B_100%)] overflow-hidden">
                   <img
                     src="<?= e($methodImgUrl) ?>"
                     alt="Teknik seduh <?= e($m['nama_metode']) ?>"
-                    class="relative z-10 w-full h-full object-contain group-hover:scale-[1.03] transition-transform duration-500"
+                    class="relative z-10 w-full h-full object-contain group-hover:scale-[1.03] transition-transform duration-300"
                     loading="lazy"
+                    decoding="async"
                     onerror="this.style.display='none'"
                   />
                   <div class="absolute inset-x-0 top-0 z-20 h-14 bg-gradient-to-b from-espresso-dark/35 to-transparent pointer-events-none"></div>
@@ -728,7 +740,7 @@ require __DIR__ . '/partials/head.php';
                         <?= $methodHabis ? 'Habis (0 porsi)' : 'Sisa ' . $methodStok . ' porsi' ?>
                       </span>
                     <?php else: ?>
-                      <span class="px-2.5 py-1 rounded-full bg-espresso/90 backdrop-blur-sm text-cream text-[11px] font-semibold tabular-nums shadow-sm">
+                      <span class="px-2.5 py-1 rounded-full bg-espresso/95 text-cream text-[11px] font-semibold tabular-nums shadow-sm">
                         ~<?= (int) $m['estimasi_menit'] ?> menit
                       </span>
                     <?php endif; ?>
@@ -856,8 +868,9 @@ require __DIR__ . '/partials/head.php';
               class="w-full h-11 px-3 rounded-lg bg-white border border-sand text-sm text-espresso focus:outline-none focus:border-espresso"
             >
               <?php foreach ($beans as $b): ?>
-                <option value="<?= (int) $b['id'] ?>">
-                  <?= e($b['nama_kopi']) ?> — Cup <?= e(formatRupiah((int) $b['harga'])) ?> • Beans <?= e(formatRupiah((int) ($b['harga_per_kg'] ?? 250000))) ?>/kg (Sisa <?= (int) $b['stok_gram'] ?>g)
+                <?php $optOut = (int) $b['stok_gram'] < $minRatio; ?>
+                <option value="<?= (int) $b['id'] ?>" <?= $optOut ? 'disabled' : '' ?>>
+                  <?= e($b['nama_kopi']) ?> — Cup <?= e(formatRupiah((int) $b['harga'])) ?> • Beans <?= e(formatRupiah((int) ($b['harga_per_kg'] ?? 250000))) ?>/kg (<?= $optOut ? 'Stok Habis' : 'Sisa ' . (int) $b['stok_gram'] . 'g' ?>)
                 </option>
               <?php endforeach; ?>
             </select>
@@ -1003,6 +1016,11 @@ require __DIR__ . '/partials/head.php';
     const MIN_RATIO = <?= (int) $minRatio ?>;
     let activeProsesFilter = 'all';
     let drawerCloseTimer = null;
+    let toastTimer = null;
+    let isQueuePolling = false;
+    let lastQueueSig = '';
+    let lastStocksSig = '';
+    let lastMethodStocksSig = '';
 
     function formatRupiah(num) {
       return 'Rp ' + Number(num || 0).toLocaleString('id-ID');
@@ -1079,16 +1097,22 @@ require __DIR__ . '/partials/head.php';
 
     function openOrderDrawer(beanId, methodId) {
       const select = document.getElementById('order-bean-select');
+      const targetMethodObj = methodId ? METHODS_DATA.find((m) => m.id === Number(methodId)) : null;
+
       if (select) {
         if (beanId) {
           select.value = String(beanId);
         } else {
-          const available = BEANS_DATA.find((b) => b.stok_gram >= MIN_RATIO);
-          if (available) {
-            select.value = String(available.id);
+          const reqGram = targetMethodObj ? Number(targetMethodObj.rasio_kopi_gram || MIN_RATIO) : MIN_RATIO;
+          const compatibleBean = BEANS_DATA.find((b) => b.stok_gram >= reqGram)
+            || BEANS_DATA.find((b) => b.stok_gram >= MIN_RATIO);
+          if (compatibleBean) {
+            select.value = String(compatibleBean.id);
           }
         }
       }
+
+      const selectedBeanObj = BEANS_DATA.find((b) => b.id === Number(select?.value || 0));
       if (methodId) {
         const methodRadio = document.querySelector(`input[name="metode_seduh_id"][value="${methodId}"]`);
         if (methodRadio && !methodRadio.disabled) {
@@ -1096,9 +1120,20 @@ require __DIR__ . '/partials/head.php';
         }
       } else {
         const checkedNow = document.querySelector('input[name="metode_seduh_id"]:checked');
-        if (!checkedNow || checkedNow.disabled) {
-          const firstValid = Array.from(document.querySelectorAll('input[name="metode_seduh_id"]')).find((el) => !el.disabled);
-          if (firstValid) firstValid.checked = true;
+        const checkedMethodObj = checkedNow ? METHODS_DATA.find((m) => m.id === Number(checkedNow.value)) : null;
+        const needsBetterMethod = !checkedNow
+          || checkedNow.disabled
+          || (selectedBeanObj && checkedMethodObj && selectedBeanObj.stok_gram < checkedMethodObj.rasio_kopi_gram);
+
+        if (needsBetterMethod) {
+          const radios = Array.from(document.querySelectorAll('input[name="metode_seduh_id"]'));
+          const compatibleRadio = radios.find((el) => {
+            if (el.disabled) return false;
+            if (!selectedBeanObj) return true;
+            const mObj = METHODS_DATA.find((m) => m.id === Number(el.value));
+            return mObj && selectedBeanObj.stok_gram >= mObj.rasio_kopi_gram;
+          }) || radios.find((el) => !el.disabled);
+          if (compatibleRadio) compatibleRadio.checked = true;
         }
       }
       const errBanner = document.getElementById('order-error-banner');
@@ -1348,7 +1383,15 @@ require __DIR__ . '/partials/head.php';
       }
 
       if (option && bean) {
-        option.textContent = `${bean.nama_kopi} — Cup ${formatRupiah(bean.harga)} • Beans ${formatRupiah(bean.harga_per_kg)}/kg (Sisa ${newStock}g)`;
+        option.disabled = isOut;
+        option.textContent = `${bean.nama_kopi} — Cup ${formatRupiah(bean.harga)} • Beans ${formatRupiah(bean.harga_per_kg)}/kg (${isOut ? 'Stok Habis' : 'Sisa ' + newStock + 'g'})`;
+      }
+
+      const heroStockEl = document.getElementById('hero-featured-stock');
+      if (heroStockEl && Number(heroStockEl.dataset.featuredId) === Number(beanId)) {
+        heroStockEl.textContent = isOut
+          ? 'Stok Habis'
+          : `Tersedia • ${Number(newStock).toLocaleString('id-ID')}g`;
       }
     }
 
@@ -1358,14 +1401,19 @@ require __DIR__ . '/partials/head.php';
       const bodyEl = document.getElementById('toast-body');
       if (!toast || !titleEl || !bodyEl) return;
 
+      if (toastTimer) {
+        clearTimeout(toastTimer);
+      }
+
       titleEl.textContent = title;
       bodyEl.textContent = body;
       toast.classList.remove('translate-y-24', 'opacity-0', 'pointer-events-none');
       toast.classList.add('translate-y-0', 'opacity-100');
 
-      setTimeout(() => {
+      toastTimer = setTimeout(() => {
         toast.classList.add('translate-y-24', 'opacity-0', 'pointer-events-none');
         toast.classList.remove('translate-y-0', 'opacity-100');
+        toastTimer = null;
       }, 5000);
     }
 
@@ -1405,15 +1453,20 @@ require __DIR__ . '/partials/head.php';
           updateMethodStockUI(data.metode_seduh_id, data.updated_method_stok);
         }
         closeOrderDrawer();
-        form.reset();
+
+        const nextBean = BEANS_DATA.find((b) => b.stok_gram >= MIN_RATIO);
+        const selectEl = document.getElementById('order-bean-select');
+        if (selectEl && nextBean) {
+          selectEl.value = String(nextBean.id);
+        }
         const firstMethod = Array.from(form.querySelectorAll('input[name="metode_seduh_id"]')).find((el) => !el.disabled);
         if (firstMethod) firstMethod.checked = true;
 
         const batchNote = data.updated_method_stok !== null && data.updated_method_stok !== undefined
-          ? ` • Persediaan ${data.order.nama_metode} sisa ${data.updated_method_stok} porsi.`
+          ? ` • Persediaan ${data.order.nama_metode} sisa ${data.updated_method_stok} porsi`
           : '';
         showToast(
-          `Pesanan ${data.order.kode_pesanan} Diterima`,
+          `Pesanan ${data.order.kode_pesanan} Diterima (${formatRupiah(data.order.total_harga)})`,
           `${data.order.nama_kopi} (${data.order.nama_metode}) • Sisa beans ${data.updated_stok_gram}g${batchNote}`
         );
         await refreshLiveQueue(false);
@@ -1489,24 +1542,51 @@ require __DIR__ . '/partials/head.php';
     }
 
     async function refreshLiveQueue(notify) {
+      if (isQueuePolling && !notify) return;
+      isQueuePolling = true;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+
       try {
-        const res = await fetch('/antrean', { headers: { Accept: 'application/json' } });
+        const res = await fetch('/antrean', {
+          headers: { Accept: 'application/json' },
+          signal: controller.signal,
+        });
         if (!res.ok) return;
         const data = await res.json();
         if (!data.success) return;
 
-        renderLiveQueue(data.orders || []);
-        if (data.stocks) {
+        const ordersPayload = data.orders || [];
+        const queueSig = JSON.stringify(ordersPayload);
+        if (queueSig !== lastQueueSig) {
+          lastQueueSig = queueSig;
+          renderLiveQueue(ordersPayload);
+        }
+
+        let stocksChanged = false;
+        const stocksSig = JSON.stringify(data.stocks || {});
+        if (data.stocks && stocksSig !== lastStocksSig) {
+          lastStocksSig = stocksSig;
+          stocksChanged = true;
           Object.entries(data.stocks).forEach(([id, gram]) => {
             updateBeanCardStockUI(Number(id), Number(gram));
           });
         }
-        if (data.method_stocks) {
+
+        const methodStocksSig = JSON.stringify(data.method_stocks || {});
+        if (data.method_stocks && methodStocksSig !== lastMethodStocksSig) {
+          lastMethodStocksSig = methodStocksSig;
+          stocksChanged = true;
           Object.entries(data.method_stocks).forEach(([id, porsi]) => {
             updateMethodStockUI(Number(id), porsi === null ? null : Number(porsi));
           });
         }
-        updateOrderCalculator();
+
+        const drawer = document.getElementById('order-drawer');
+        if (stocksChanged || (drawer && !drawer.classList.contains('hidden'))) {
+          updateOrderCalculator();
+        }
+
         const clockEl = document.getElementById('live-clock-badge');
         if (clockEl && data.server_time) {
           clockEl.textContent = 'Waktu Bar: ' + data.server_time;
@@ -1516,6 +1596,9 @@ require __DIR__ . '/partials/head.php';
         }
       } catch (_) {
         // Abaikan error sementara saat polling
+      } finally {
+        clearTimeout(timeoutId);
+        isQueuePolling = false;
       }
     }
 
@@ -1532,7 +1615,16 @@ require __DIR__ . '/partials/head.php';
 
     document.addEventListener('DOMContentLoaded', () => {
       updateOrderCalculator();
-      setInterval(() => refreshLiveQueue(false), 5000);
+      setInterval(() => {
+        if (!document.hidden) {
+          refreshLiveQueue(false);
+        }
+      }, 5000);
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+          refreshLiveQueue(false);
+        }
+      });
       document.querySelectorAll('#main-nav .nav-link').forEach((link) => {
         link.addEventListener('click', () => setActiveNavLink(link.getAttribute('href')));
       });

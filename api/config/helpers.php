@@ -593,13 +593,57 @@ function ensureBijiKopiHargaPerKgColumn(PDO $pdo): void
 /**
  * Menyesuaikan data seed biji kopi lama agar seluruh katalog memakai nama varian,
  * origin, ketinggian, dan tasting notes single origin Indonesia yang nyata di dunia nyata,
- * tanpa memutus relasi pesanan historis.
+ * tanpa memutus relasi pesanan historis. Jika $preloadedBeans disediakan, pengecekan
+ * dilakukan di memori agar tidak menambah query DB pada setiap request normal.
+ *
+ * @param array<int, array<string, mixed>>|null $preloadedBeans
+ * @return array<int, array<string, mixed>>
  */
-function syncIndonesianBeansCatalog(PDO $pdo): void
+function syncIndonesianBeansCatalog(PDO $pdo, ?array $preloadedBeans = null): array
 {
     static $synced = false;
     if ($synced) {
-        return;
+        return $preloadedBeans ?? [];
+    }
+
+    $legacyNames = [
+        'Flores Bajawa Ngura',
+        'Ethiopia Yirgacheffe Chelchele',
+        'Kenya Nyeri Kiandu AA',
+        'Papua Wamena Kurima',
+    ];
+    $legacyPairs = [
+        'Aceh Gayo Pantan Musara'   => 'Aceh Tengah • 1.650 mdpl',
+        'Bali Kintamani Ulian'      => 'Bangli, Bali • 1.450 mdpl',
+        'Java Preanger Gunung Halu' => 'Bandung Barat • 1.500 mdpl',
+        'Toraja Sapan Minanga'      => 'Toraja Utara • 1.700 mdpl',
+    ];
+
+    $needsUpdate = false;
+    if ($preloadedBeans !== null) {
+        foreach ($preloadedBeans as $b) {
+            $bName = (string) ($b['nama_kopi'] ?? '');
+            $bOrigin = (string) ($b['origin'] ?? '');
+            if (in_array($bName, $legacyNames, true) || (isset($legacyPairs[$bName]) && $legacyPairs[$bName] === $bOrigin)) {
+                $needsUpdate = true;
+                break;
+            }
+        }
+    } else {
+        $needsUpdate = (bool) $pdo->query(
+            "SELECT 1 FROM biji_kopi
+             WHERE nama_kopi IN ('Flores Bajawa Ngura', 'Ethiopia Yirgacheffe Chelchele', 'Kenya Nyeri Kiandu AA', 'Papua Wamena Kurima')
+                OR (nama_kopi = 'Aceh Gayo Pantan Musara' AND origin = 'Aceh Tengah • 1.650 mdpl')
+                OR (nama_kopi = 'Bali Kintamani Ulian' AND origin = 'Bangli, Bali • 1.450 mdpl')
+                OR (nama_kopi = 'Java Preanger Gunung Halu' AND origin = 'Bandung Barat • 1.500 mdpl')
+                OR (nama_kopi = 'Toraja Sapan Minanga' AND origin = 'Toraja Utara • 1.700 mdpl')
+             LIMIT 1"
+        )->fetchColumn();
+    }
+
+    if (!$needsUpdate) {
+        $synced = true;
+        return $preloadedBeans ?? [];
     }
 
     $updates = [
@@ -725,4 +769,14 @@ function syncIndonesianBeansCatalog(PDO $pdo): void
     }
 
     $synced = true;
+
+    if ($preloadedBeans !== null) {
+        return $pdo->query(
+            'SELECT id, nama_kopi, origin, proses, tasting_notes, stok_gram, harga, harga_per_kg, gambar_url
+             FROM biji_kopi
+             ORDER BY id ASC'
+        )->fetchAll();
+    }
+
+    return [];
 }

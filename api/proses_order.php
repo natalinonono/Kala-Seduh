@@ -92,9 +92,17 @@ if (mb_strlen($catatan) > 300) {
 
 try {
     $pdo = getDbConnection();
-    ensureBijiKopiHargaPerKgColumn($pdo);
-    syncIndonesianBeansCatalog($pdo);
-    ensureMetodeSeduhStockColumn($pdo);
+    try {
+        syncIndonesianBeansCatalog($pdo);
+    } catch (PDOException $schemaEx) {
+        if ($schemaEx->getCode() === '42703') {
+            ensureBijiKopiHargaPerKgColumn($pdo);
+            ensureMetodeSeduhStockColumn($pdo);
+            syncIndonesianBeansCatalog($pdo);
+        } else {
+            throw $schemaEx;
+        }
+    }
     $pdo->beginTransaction();
 
     // 1. Kunci baris biji kopi (FOR UPDATE) agar stok aman dari race condition
@@ -110,14 +118,34 @@ try {
     }
 
     // 2. Kunci & ambil parameter metode seduh (termasuk stok_porsi bila dibatasi per batch)
-    $stmtMethod = $pdo->prepare(
-        'SELECT id, nama_metode, rasio_kopi_gram, estimasi_menit, biaya_tambahan, stok_porsi
-         FROM metode_seduh
-         WHERE id = :id
-         FOR UPDATE'
-    );
-    $stmtMethod->execute([':id' => $metodeSeduhId]);
-    $method = $stmtMethod->fetch();
+    try {
+        $stmtMethod = $pdo->prepare(
+            'SELECT id, nama_metode, rasio_kopi_gram, estimasi_menit, biaya_tambahan, stok_porsi
+             FROM metode_seduh
+             WHERE id = :id
+             FOR UPDATE'
+        );
+        $stmtMethod->execute([':id' => $metodeSeduhId]);
+        $method = $stmtMethod->fetch();
+    } catch (PDOException $schemaEx) {
+        if ($schemaEx->getCode() === '42703') {
+            $pdo->rollBack();
+            ensureMetodeSeduhStockColumn($pdo);
+            $pdo->beginTransaction();
+            $stmtBean->execute([':id' => $bijiKopiId]);
+            $bean = $stmtBean->fetch();
+            $stmtMethod = $pdo->prepare(
+                'SELECT id, nama_metode, rasio_kopi_gram, estimasi_menit, biaya_tambahan, stok_porsi
+                 FROM metode_seduh
+                 WHERE id = :id
+                 FOR UPDATE'
+            );
+            $stmtMethod->execute([':id' => $metodeSeduhId]);
+            $method = $stmtMethod->fetch();
+        } else {
+            throw $schemaEx;
+        }
+    }
 
     if (!$method || str_contains(strtolower((string) $method['nama_metode']), 'cold brew')) {
         $pdo->rollBack();

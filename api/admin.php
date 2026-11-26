@@ -62,8 +62,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
     try {
         $pdo = getDbConnection();
-        ensureBijiKopiHargaPerKgColumn($pdo);
-        syncIndonesianBeansCatalog($pdo);
+
+        $normalizeImgUrl = static function (string $raw) use ($defaultCoffeeImg): string {
+            if ($raw === '' || !filter_var($raw, FILTER_VALIDATE_URL)) {
+                return $defaultCoffeeImg;
+            }
+            $scheme = strtolower((string) parse_url($raw, PHP_URL_SCHEME));
+            return in_array($scheme, ['http', 'https'], true) ? $raw : $defaultCoffeeImg;
+        };
 
         switch ($action) {
             case 'update_status':
@@ -91,21 +97,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 $stok = max(0, (int) ($_POST['stok_gram'] ?? 0));
                 $harga = max(0, (int) ($_POST['harga'] ?? 0));
                 $hargaPerKg = max(0, (int) ($_POST['harga_per_kg'] ?? 0));
-                $gambar = trim((string) ($_POST['gambar_url'] ?? ''));
+                $gambar = $normalizeImgUrl(trim((string) ($_POST['gambar_url'] ?? '')));
 
-                if ($gambar === '' || !filter_var($gambar, FILTER_VALIDATE_URL)) {
-                    $gambar = $defaultCoffeeImg;
-                }
                 if ($nama === '' || $origin === '' || $notes === '' || !in_array($proses, $allowedProses, true)) {
                     setFlashMessage('error', 'Lengkapi seluruh data biji kopi dengan proses yang valid.');
                     $redirectAdmin('biji');
                 }
 
-                $stmt = $pdo->prepare(
-                    'INSERT INTO biji_kopi (nama_kopi, origin, proses, tasting_notes, stok_gram, harga, harga_per_kg, gambar_url)
-                     VALUES (:nama, :origin, :proses, :notes, :stok, :harga, :harga_kg, :gambar)'
-                );
-                $stmt->execute([
+                $beanParams = [
                     ':nama'     => $nama,
                     ':origin'   => $origin,
                     ':proses'   => $proses,
@@ -114,7 +113,21 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                     ':harga'    => $harga,
                     ':harga_kg' => $hargaPerKg,
                     ':gambar'   => $gambar,
-                ]);
+                ];
+                try {
+                    $stmt = $pdo->prepare(
+                        'INSERT INTO biji_kopi (nama_kopi, origin, proses, tasting_notes, stok_gram, harga, harga_per_kg, gambar_url)
+                         VALUES (:nama, :origin, :proses, :notes, :stok, :harga, :harga_kg, :gambar)'
+                    );
+                    $stmt->execute($beanParams);
+                } catch (PDOException $e) {
+                    if ($e->getCode() === '42703') {
+                        ensureBijiKopiHargaPerKgColumn($pdo);
+                        $stmt->execute($beanParams);
+                    } else {
+                        throw $e;
+                    }
+                }
                 setFlashMessage('success', "Biji kopi \"{$nama}\" berhasil ditambahkan ke katalog.");
                 $redirectAdmin('biji');
 
@@ -127,24 +140,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 $stok = max(0, (int) ($_POST['stok_gram'] ?? 0));
                 $harga = max(0, (int) ($_POST['harga'] ?? 0));
                 $hargaPerKg = max(0, (int) ($_POST['harga_per_kg'] ?? 0));
-                $gambar = trim((string) ($_POST['gambar_url'] ?? ''));
+                $gambar = $normalizeImgUrl(trim((string) ($_POST['gambar_url'] ?? '')));
 
-                if ($gambar === '' || !filter_var($gambar, FILTER_VALIDATE_URL)) {
-                    $gambar = $defaultCoffeeImg;
-                }
                 if ($id <= 0 || $nama === '' || $origin === '' || $notes === '' || !in_array($proses, $allowedProses, true)) {
                     setFlashMessage('error', 'Data pembaruan biji kopi tidak lengkap atau tidak valid.');
                     $redirectAdmin('biji');
                 }
 
-                $stmt = $pdo->prepare(
-                    'UPDATE biji_kopi
-                     SET nama_kopi = :nama, origin = :origin, proses = :proses,
-                         tasting_notes = :notes, stok_gram = :stok, harga = :harga,
-                         harga_per_kg = :harga_kg, gambar_url = :gambar
-                     WHERE id = :id'
-                );
-                $stmt->execute([
+                $editParams = [
                     ':id'       => $id,
                     ':nama'     => $nama,
                     ':origin'   => $origin,
@@ -154,7 +157,24 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                     ':harga'    => $harga,
                     ':harga_kg' => $hargaPerKg,
                     ':gambar'   => $gambar,
-                ]);
+                ];
+                try {
+                    $stmt = $pdo->prepare(
+                        'UPDATE biji_kopi
+                         SET nama_kopi = :nama, origin = :origin, proses = :proses,
+                             tasting_notes = :notes, stok_gram = :stok, harga = :harga,
+                             harga_per_kg = :harga_kg, gambar_url = :gambar
+                         WHERE id = :id'
+                    );
+                    $stmt->execute($editParams);
+                } catch (PDOException $e) {
+                    if ($e->getCode() === '42703') {
+                        ensureBijiKopiHargaPerKgColumn($pdo);
+                        $stmt->execute($editParams);
+                    } else {
+                        throw $e;
+                    }
+                }
                 setFlashMessage('success', "Data biji kopi \"{$nama}\" berhasil diperbarui.");
                 $redirectAdmin('biji');
 
@@ -208,7 +228,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 $redirectAdmin('biji');
 
             case 'add_method':
-                ensureMetodeSeduhStockColumn($pdo);
                 $namaMetode = trim((string) ($_POST['nama_metode'] ?? ''));
                 $rasio = max(1, (int) ($_POST['rasio_kopi_gram'] ?? 15));
                 $estimasi = max(1, (int) ($_POST['estimasi_menit'] ?? 4));
@@ -220,21 +239,32 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                     setFlashMessage('error', 'Nama metode seduh wajib diisi.');
                     $redirectAdmin('metode');
                 }
-                $stmt = $pdo->prepare(
-                    'INSERT INTO metode_seduh (nama_metode, rasio_kopi_gram, estimasi_menit, biaya_tambahan, stok_porsi)
-                     VALUES (:nama, :rasio, :estimasi, :biaya, :stok_porsi)'
-                );
-                $stmt->bindValue(':nama', $namaMetode);
-                $stmt->bindValue(':rasio', $rasio, PDO::PARAM_INT);
-                $stmt->bindValue(':estimasi', $estimasi, PDO::PARAM_INT);
-                $stmt->bindValue(':biaya', $biaya, PDO::PARAM_INT);
-                $stmt->bindValue(':stok_porsi', $stokPorsi, $stokPorsi === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
-                $stmt->execute();
+                try {
+                    $stmt = $pdo->prepare(
+                        'INSERT INTO metode_seduh (nama_metode, rasio_kopi_gram, estimasi_menit, biaya_tambahan, stok_porsi)
+                         VALUES (:nama, :rasio, :estimasi, :biaya, :stok_porsi)'
+                    );
+                    $stmt->bindValue(':nama', $namaMetode);
+                    $stmt->bindValue(':rasio', $rasio, PDO::PARAM_INT);
+                    $stmt->bindValue(':estimasi', $estimasi, PDO::PARAM_INT);
+                    $stmt->bindValue(':biaya', $biaya, PDO::PARAM_INT);
+                    $stmt->bindValue(':stok_porsi', $stokPorsi, $stokPorsi === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
+                    $stmt->execute();
+                } catch (PDOException $e) {
+                    if ($e->getCode() === '42703') {
+                        ensureMetodeSeduhStockColumn($pdo);
+                        $stmt->execute();
+                    } elseif ($e->getCode() === '23505') {
+                        setFlashMessage('error', "Metode seduh \"{$namaMetode}\" sudah terdaftar.");
+                        $redirectAdmin('metode');
+                    } else {
+                        throw $e;
+                    }
+                }
                 setFlashMessage('success', "Metode seduh \"{$namaMetode}\" berhasil ditambahkan.");
                 $redirectAdmin('metode');
 
             case 'edit_method':
-                ensureMetodeSeduhStockColumn($pdo);
                 $id = (int) ($_POST['id'] ?? 0);
                 $namaMetode = trim((string) ($_POST['nama_metode'] ?? ''));
                 $rasio = max(1, (int) ($_POST['rasio_kopi_gram'] ?? 15));
@@ -247,18 +277,30 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                     setFlashMessage('error', 'Data metode seduh tidak valid.');
                     $redirectAdmin('metode');
                 }
-                $stmt = $pdo->prepare(
-                    'UPDATE metode_seduh
-                     SET nama_metode = :nama, rasio_kopi_gram = :rasio, estimasi_menit = :estimasi, biaya_tambahan = :biaya, stok_porsi = :stok_porsi
-                     WHERE id = :id'
-                );
-                $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-                $stmt->bindValue(':nama', $namaMetode);
-                $stmt->bindValue(':rasio', $rasio, PDO::PARAM_INT);
-                $stmt->bindValue(':estimasi', $estimasi, PDO::PARAM_INT);
-                $stmt->bindValue(':biaya', $biaya, PDO::PARAM_INT);
-                $stmt->bindValue(':stok_porsi', $stokPorsi, $stokPorsi === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
-                $stmt->execute();
+                try {
+                    $stmt = $pdo->prepare(
+                        'UPDATE metode_seduh
+                         SET nama_metode = :nama, rasio_kopi_gram = :rasio, estimasi_menit = :estimasi, biaya_tambahan = :biaya, stok_porsi = :stok_porsi
+                         WHERE id = :id'
+                    );
+                    $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+                    $stmt->bindValue(':nama', $namaMetode);
+                    $stmt->bindValue(':rasio', $rasio, PDO::PARAM_INT);
+                    $stmt->bindValue(':estimasi', $estimasi, PDO::PARAM_INT);
+                    $stmt->bindValue(':biaya', $biaya, PDO::PARAM_INT);
+                    $stmt->bindValue(':stok_porsi', $stokPorsi, $stokPorsi === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
+                    $stmt->execute();
+                } catch (PDOException $e) {
+                    if ($e->getCode() === '42703') {
+                        ensureMetodeSeduhStockColumn($pdo);
+                        $stmt->execute();
+                    } elseif ($e->getCode() === '23505') {
+                        setFlashMessage('error', "Nama metode seduh \"{$namaMetode}\" sudah digunakan.");
+                        $redirectAdmin('metode');
+                    } else {
+                        throw $e;
+                    }
+                }
                 setFlashMessage('success', "Metode seduh \"{$namaMetode}\" berhasil diperbarui.");
                 $redirectAdmin('metode');
 
@@ -358,14 +400,25 @@ try {
         $stats['pesanan_aktif'] = (int) $kpiRow['pesanan_aktif'];
     }
 
-    ensureBijiKopiHargaPerKgColumn($pdo);
-    syncIndonesianBeansCatalog($pdo);
-
-    $beans = $pdo->query(
-        'SELECT id, nama_kopi, origin, proses, tasting_notes, stok_gram, harga, harga_per_kg, gambar_url
-         FROM biji_kopi
-         ORDER BY id ASC'
-    )->fetchAll();
+    try {
+        $beans = $pdo->query(
+            'SELECT id, nama_kopi, origin, proses, tasting_notes, stok_gram, harga, harga_per_kg, gambar_url
+             FROM biji_kopi
+             ORDER BY id ASC'
+        )->fetchAll();
+    } catch (PDOException $e) {
+        if ($e->getCode() === '42703') {
+            ensureBijiKopiHargaPerKgColumn($pdo);
+            $beans = $pdo->query(
+                'SELECT id, nama_kopi, origin, proses, tasting_notes, stok_gram, harga, harga_per_kg, gambar_url
+                 FROM biji_kopi
+                 ORDER BY id ASC'
+            )->fetchAll();
+        } else {
+            throw $e;
+        }
+    }
+    $beans = syncIndonesianBeansCatalog($pdo, $beans);
 
     foreach ($beans as $b) {
         $gram = (int) $b['stok_gram'];
@@ -375,13 +428,24 @@ try {
         }
     }
 
-    ensureMetodeSeduhStockColumn($pdo);
-
-    $methods = $pdo->query(
-        'SELECT id, nama_metode, rasio_kopi_gram, estimasi_menit, biaya_tambahan, stok_porsi
-         FROM metode_seduh
-         ORDER BY id ASC'
-    )->fetchAll();
+    try {
+        $methods = $pdo->query(
+            'SELECT id, nama_metode, rasio_kopi_gram, estimasi_menit, biaya_tambahan, stok_porsi
+             FROM metode_seduh
+             ORDER BY id ASC'
+        )->fetchAll();
+    } catch (PDOException $e) {
+        if ($e->getCode() === '42703') {
+            ensureMetodeSeduhStockColumn($pdo);
+            $methods = $pdo->query(
+                'SELECT id, nama_metode, rasio_kopi_gram, estimasi_menit, biaya_tambahan, stok_porsi
+                 FROM metode_seduh
+                 ORDER BY id ASC'
+            )->fetchAll();
+        } else {
+            throw $e;
+        }
+    }
     $methods = syncExtraDefaultMethods($pdo, $methods);
     $methods = removeColdBrewMethod($pdo, $methods);
 
@@ -392,46 +456,50 @@ try {
         }
     }
 
-    $queueOrders = $pdo->query(
-        "SELECT
-            p.id, p.kode_pesanan, p.nama_pelanggan, p.nomor_meja,
-            p.tipe_sajian, p.catatan, p.total_harga, p.status, p.created_at,
-            b.nama_kopi, b.proses, m.nama_metode, m.rasio_kopi_gram, m.estimasi_menit
-         FROM pesanan p
-         JOIN biji_kopi b ON b.id = p.biji_kopi_id
-         JOIN metode_seduh m ON m.id = p.metode_seduh_id
-         WHERE p.status IN ('Menunggu', 'Sedang Diseduh')
-            OR (
-                p.status = 'Selesai'
-                AND (p.created_at AT TIME ZONE 'Asia/Jakarta')::date = (NOW() AT TIME ZONE 'Asia/Jakarta')::date
-            )
-         ORDER BY p.created_at ASC"
-    )->fetchAll();
-
-    $reportSql = "SELECT
-            p.id, p.kode_pesanan, p.nama_pelanggan, p.nomor_meja,
-            p.tipe_sajian, p.catatan, p.total_harga, p.status, p.created_at,
-            b.nama_kopi, m.nama_metode, m.rasio_kopi_gram
-         FROM pesanan p
-         JOIN biji_kopi b ON b.id = p.biji_kopi_id
-         JOIN metode_seduh m ON m.id = p.metode_seduh_id
-         WHERE (p.created_at AT TIME ZONE 'Asia/Jakarta')::date BETWEEN :dari AND :sampai";
-    $reportParams = [
-        ':dari'   => $dariTanggal,
-        ':sampai' => $sampaiTanggal,
-    ];
-    if (in_array($filterStatus, $allowedStatuses, true)) {
-        $reportSql .= ' AND p.status = :status_filter';
-        $reportParams[':status_filter'] = $filterStatus;
+    if ($activeTab === 'antrean') {
+        $queueOrders = $pdo->query(
+            "SELECT
+                p.id, p.kode_pesanan, p.nama_pelanggan, p.nomor_meja,
+                p.tipe_sajian, p.catatan, p.total_harga, p.status, p.created_at,
+                b.nama_kopi, b.proses, m.nama_metode, m.rasio_kopi_gram, m.estimasi_menit
+             FROM pesanan p
+             JOIN biji_kopi b ON b.id = p.biji_kopi_id
+             JOIN metode_seduh m ON m.id = p.metode_seduh_id
+             WHERE p.status IN ('Menunggu', 'Sedang Diseduh')
+                OR (
+                    p.status = 'Selesai'
+                    AND (p.created_at AT TIME ZONE 'Asia/Jakarta')::date = (NOW() AT TIME ZONE 'Asia/Jakarta')::date
+                )
+             ORDER BY p.created_at ASC"
+        )->fetchAll();
     }
-    $reportSql .= ' ORDER BY p.created_at DESC';
 
-    $stmtReport = $pdo->prepare($reportSql);
-    $stmtReport->execute($reportParams);
-    $reportOrders = $stmtReport->fetchAll();
+    if ($activeTab === 'laporan') {
+        $reportSql = "SELECT
+                p.id, p.kode_pesanan, p.nama_pelanggan, p.nomor_meja,
+                p.tipe_sajian, p.catatan, p.total_harga, p.status, p.created_at,
+                b.nama_kopi, m.nama_metode, m.rasio_kopi_gram
+             FROM pesanan p
+             JOIN biji_kopi b ON b.id = p.biji_kopi_id
+             JOIN metode_seduh m ON m.id = p.metode_seduh_id
+             WHERE (p.created_at AT TIME ZONE 'Asia/Jakarta')::date BETWEEN :dari AND :sampai";
+        $reportParams = [
+            ':dari'   => $dariTanggal,
+            ':sampai' => $sampaiTanggal,
+        ];
+        if (in_array($filterStatus, $allowedStatuses, true)) {
+            $reportSql .= ' AND p.status = :status_filter';
+            $reportParams[':status_filter'] = $filterStatus;
+        }
+        $reportSql .= ' ORDER BY p.created_at DESC';
 
-    foreach ($reportOrders as $ro) {
-        $reportOmzet += (int) $ro['total_harga'];
+        $stmtReport = $pdo->prepare($reportSql);
+        $stmtReport->execute($reportParams);
+        $reportOrders = $stmtReport->fetchAll();
+
+        foreach ($reportOrders as $ro) {
+            $reportOmzet += (int) $ro['total_harga'];
+        }
     }
 } catch (Throwable $e) {
     $dbError = $e->getMessage();
@@ -953,7 +1021,7 @@ require __DIR__ . '/partials/head.php';
                     <tr class="hover:bg-surface-low transition-colors">
                       <td class="py-3.5 px-4">
                         <div class="flex items-center gap-3">
-                          <img src="<?= e(resolveBeanImageUrl((string) $bean['gambar_url'])) ?>" alt="" class="w-11 h-11 rounded object-cover bg-surface-mid shrink-0" onerror="this.style.display='none'" />
+                          <img src="<?= e(resolveBeanImageUrl((string) $bean['gambar_url'])) ?>" alt="" loading="lazy" decoding="async" class="w-11 h-11 rounded object-cover bg-surface-mid shrink-0" onerror="this.style.display='none'" />
                           <div>
                             <span class="font-semibold text-sm text-espresso block"><?= e($bean['nama_kopi']) ?></span>
                             <span class="text-xs text-muted"><?= e($bean['origin']) ?></span>
@@ -1007,7 +1075,7 @@ require __DIR__ . '/partials/head.php';
                           >
                             <span class="material-symbols-outlined text-[18px]">edit</span>
                           </button>
-                          <form method="POST" action="/admin?tab=biji" onsubmit="return confirm('Yakin ingin menghapus <?= e(addslashes((string) $bean['nama_kopi'])) ?>?');" class="inline">
+                          <form method="POST" action="/admin?tab=biji" data-confirm="<?= e('Yakin ingin menghapus ' . (string) $bean['nama_kopi'] . '?') ?>" onsubmit="return confirmAction(this)" class="inline">
                             <input type="hidden" name="csrf_token" value="<?= e($csrfToken) ?>" />
                             <input type="hidden" name="tab" value="biji" />
                             <input type="hidden" name="action" value="delete_bean" />
@@ -1117,7 +1185,7 @@ require __DIR__ . '/partials/head.php';
                     >
                       Edit
                     </button>
-                    <form method="POST" action="/admin?tab=metode" onsubmit="return confirm('Hapus metode seduh <?= e(addslashes((string) $m['nama_metode'])) ?>?');">
+                    <form method="POST" action="/admin?tab=metode" data-confirm="<?= e('Hapus metode seduh ' . (string) $m['nama_metode'] . '?') ?>" onsubmit="return confirmAction(this)">
                       <input type="hidden" name="csrf_token" value="<?= e($csrfToken) ?>" />
                       <input type="hidden" name="tab" value="metode" />
                       <input type="hidden" name="action" value="delete_method" />
@@ -1471,8 +1539,9 @@ require __DIR__ . '/partials/head.php';
           <label class="block text-xs font-semibold text-espresso">Pilih Biji Kopi *</label>
           <select name="biji_kopi_id" required class="w-full h-10 px-3 rounded bg-white border border-sand text-sm">
             <?php foreach ($beans as $b): ?>
-              <option value="<?= (int) $b['id'] ?>">
-                <?= e($b['nama_kopi']) ?> — Cup <?= e(formatRupiah((int) $b['harga'])) ?> • Beans <?= e(formatRupiah((int) ($b['harga_per_kg'] ?? 250000))) ?>/kg (Stok <?= (int) $b['stok_gram'] ?>g)
+              <?php $wBeanOut = (int) $b['stok_gram'] <= 0; ?>
+              <option value="<?= (int) $b['id'] ?>" <?= $wBeanOut ? 'disabled' : '' ?>>
+                <?= e($b['nama_kopi']) ?> — Cup <?= e(formatRupiah((int) $b['harga'])) ?> • Beans <?= e(formatRupiah((int) ($b['harga_per_kg'] ?? 250000))) ?>/kg (<?= $wBeanOut ? 'HABIS 0g' : 'Stok ' . (int) $b['stok_gram'] . 'g' ?>)
               </option>
             <?php endforeach; ?>
           </select>
@@ -1623,6 +1692,30 @@ require __DIR__ . '/partials/head.php';
     function openWalkinModal() {
       openModal('walkin-modal');
     }
+
+    function confirmAction(form) {
+      const msg = form?.dataset?.confirm || 'Yakin melanjutkan aksi ini?';
+      return window.confirm(msg);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('.modal-backdrop').forEach((backdrop) => {
+        backdrop.addEventListener('click', (e) => {
+          if (e.target === backdrop && backdrop.id) {
+            closeModal(backdrop.id);
+          }
+        });
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          document.querySelectorAll('.modal-backdrop:not(.hidden)').forEach((el) => {
+            if (el.id) closeModal(el.id);
+          });
+          toggleSidebar(false);
+        }
+      });
+    });
   </script>
 </body>
 </html>

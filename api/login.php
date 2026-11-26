@@ -45,9 +45,12 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             } else {
                 $errorMessage = 'Username atau password tidak sesuai.';
             }
-        } catch (Throwable $e) {
+        } catch (RuntimeException $e) {
             error_log('[Login Error] ' . $e->getMessage());
             $errorMessage = $e->getMessage();
+        } catch (Throwable $e) {
+            error_log('[Login Error] ' . $e->getMessage());
+            $errorMessage = 'Terjadi gangguan pada server saat login. Silakan coba sesaat lagi.';
         }
     }
 }

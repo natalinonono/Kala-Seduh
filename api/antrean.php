@@ -10,7 +10,6 @@ require_once __DIR__ . '/config/database.php';
 
 try {
     $pdo = getDbConnection();
-    ensureMetodeSeduhStockColumn($pdo);
 
     $stmtQueue = $pdo->query(
         "SELECT
@@ -62,11 +61,34 @@ try {
         $stocks[(int) $s['id']] = (int) $s['stok_gram'];
     }
 
-    $stmtMethodStocks = $pdo->query('SELECT id, stok_porsi FROM metode_seduh ORDER BY id ASC');
+    try {
+        $stmtMethodStocks = $pdo->query(
+            "SELECT id, stok_porsi
+             FROM metode_seduh
+             WHERE LOWER(nama_metode) NOT LIKE '%cold brew%'
+             ORDER BY id ASC"
+        );
+        $methodStockRows = $stmtMethodStocks->fetchAll();
+    } catch (PDOException $e) {
+        if ($e->getCode() === '42703') {
+            ensureMetodeSeduhStockColumn($pdo);
+            $methodStockRows = $pdo->query(
+                "SELECT id, stok_porsi
+                 FROM metode_seduh
+                 WHERE LOWER(nama_metode) NOT LIKE '%cold brew%'
+                 ORDER BY id ASC"
+            )->fetchAll();
+        } else {
+            throw $e;
+        }
+    }
     $methodStocks = [];
-    foreach ($stmtMethodStocks->fetchAll() as $ms) {
+    foreach ($methodStockRows as $ms) {
         $methodStocks[(int) $ms['id']] = $ms['stok_porsi'] !== null ? (int) $ms['stok_porsi'] : null;
     }
+
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    header('Pragma: no-cache');
 
     jsonResponse([
         'success'       => true,
